@@ -1152,4 +1152,76 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#00D4FF',
   },
+  
+  // Image Upload Styles
+  imageUploadSection: {
+    marginVertical: 20,
+    padding: 16,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  imageUploadTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 16,
+  },
+  uploadButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+    backgroundColor: '#0a0a0a',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#00D4FF',
+    borderStyle: 'dashed',
+  },
+  uploadButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#00D4FF',
+    marginTop: 8,
+  },
+  uploadButtonSubtext: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 4,
+  },
+  imageContainer: {
+    position: 'relative',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  uploadedImage: {
+    width: '100%',
+    height: 200,
+    resizeMode: 'cover',
+    borderRadius: 8,
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  imageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    gap: 4,
+  },
+  removeButton: {
+    backgroundColor: 'rgba(244, 67, 54, 0.8)',
+  },
+  imageButtonText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
 });
