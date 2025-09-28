@@ -22,33 +22,29 @@ interface TradingSetup {
 }
 
 interface DirectionState {
-  pdArraysMarked: boolean;
-  weeklyBias: 'bullish' | 'bearish' | 'none' | null;
-  dailyBias: 'bullish' | 'bearish' | 'none' | null;
-  arrayInteraction: 'bullish_rejection' | 'bearish_rejection' | 'between_arrays' | 'beyond_array' | null;
-  sweepExpected: boolean;
-  finalOutcome: 'bullish' | 'bearish' | 'no_trade' | null;
+  weeklyBias: 'bullish' | 'bearish' | null;
+  weeklyPattern: 'OHLC' | 'OLHC' | null;
+  dailyBias: 'higher' | 'lower' | null;
+  dailyAlignedWithWeekly: boolean;
   completed: boolean;
 }
 
 interface StageState {
-  atPDArray: boolean;
-  stopsRun: boolean;
-  displacementOccurred: boolean;
-  mssOrFvgCut: boolean;
-  timeframesAligned: boolean;
+  priceCondition: 'pd_array' | 'stops_run' | null;
+  priceConditionDetails: string;
+  displacement: boolean;
+  displacementType: 'mss' | 'fvg_cut' | null;
   completed: boolean;
 }
 
 interface EntryState {
-  swingPointIdentified: boolean;
-  stopRunConfirmed: boolean;
-  pdaRejectionConfirmed: boolean;
-  fibonacciApplied: boolean;
-  oteMet: boolean;
-  entryDefined: boolean;
-  slTpSet: boolean;
-  rrAcceptable: boolean;
+  highGradeSwingPoint: boolean;
+  swingPointType: 'liquidity_sweep' | 'fvg_rebalance' | null;
+  oteLevel: boolean;
+  entryAt062: boolean;
+  stopLossAt1: boolean;
+  takeProfitAt0: boolean;
+  riskReward: '1.5R' | '2R' | 'other' | null;
   completed: boolean;
 }
 
