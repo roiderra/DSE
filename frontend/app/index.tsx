@@ -634,6 +634,43 @@ export default function Index() {
     </TouchableOpacity>
   );
 
+  const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
+    <View style={styles.imageUploadSection}>
+      <Text style={styles.imageUploadTitle}>📸 Chart Screenshot</Text>
+      
+      {screenshot ? (
+        <View style={styles.imageContainer}>
+          <Image source={{ uri: screenshot }} style={styles.uploadedImage} />
+          <View style={styles.imageOverlay}>
+            <TouchableOpacity
+              style={styles.imageButton}
+              onPress={() => pickImage(section)}
+            >
+              <Ionicons name="camera" size={16} color="#fff" />
+              <Text style={styles.imageButtonText}>Replace</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.imageButton, styles.removeButton]}
+              onPress={() => removeImage(section)}
+            >
+              <Ionicons name="trash" size={16} color="#fff" />
+              <Text style={styles.imageButtonText}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={() => pickImage(section)}
+        >
+          <Ionicons name="camera-outline" size={32} color="#00D4FF" />
+          <Text style={styles.uploadButtonText}>Upload Chart Screenshot</Text>
+          <Text style={styles.uploadButtonSubtext}>Tap to select from gallery</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+
   const getTabContent = () => {
     switch (activeTab) {
       case 'direction':
