@@ -86,10 +86,10 @@ class ForexTradingAPITester:
             self.log_result("API Health Check", False, f"Connection error: {str(e)}")
             return False
     
-    def test_create_trading_setup(self) -> str:
+    def test_create_trading_setup(self, name: str = "GBP/USD Bullish Analysis") -> str:
         """Test POST /api/setups - Create new trading setup"""
         try:
-            setup_data = self.create_sample_trading_setup("GBP/USD Bullish Analysis")
+            setup_data = self.create_sample_trading_setup(name)
             response = self.session.post(
                 f"{self.base_url}/setups",
                 json=setup_data,
