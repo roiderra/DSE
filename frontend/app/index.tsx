@@ -150,24 +150,25 @@ export default function Index() {
   };
 
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
-    return direction.pdArraysMarked && 
-           direction.biasFrame !== null && 
-           direction.finalOutcome !== null;
+    return direction.weeklyBias !== null && 
+           direction.weeklyPattern !== null && 
+           direction.dailyBias !== null;
   };
 
   const checkStageCompleted = (stage: StageState): boolean => {
-    return (stage.atPDArray || stage.stopsRun) && 
-           stage.displacementOccurred && 
-           (stage.mssOrFvgCut) && 
-           stage.timeframesAligned;
+    return stage.priceCondition !== null && 
+           stage.displacement && 
+           stage.displacementType !== null;
   };
 
   const checkEntryCompleted = (entry: EntryState): boolean => {
-    return entry.swingPointIdentified && 
-           entry.fibonacciApplied && 
-           entry.entryDefined && 
-           entry.slTpSet && 
-           entry.rrAcceptable;
+    return entry.highGradeSwingPoint && 
+           entry.swingPointType !== null && 
+           entry.oteLevel && 
+           entry.entryAt062 && 
+           entry.stopLossAt1 && 
+           entry.takeProfitAt0 && 
+           entry.riskReward !== null;
   };
 
   const renderTabButton = (tab: TabType, icon: string, label: string) => {
