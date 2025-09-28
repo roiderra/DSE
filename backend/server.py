@@ -30,6 +30,7 @@ class DirectionState(BaseModel):
     weeklyPattern: Optional[str] = None  # 'OHLC', 'OLHC'
     dailyBias: Optional[str] = None  # 'higher', 'lower'
     dailyAlignedWithWeekly: bool = False
+    screenshot: Optional[str] = None  # base64 encoded image
     completed: bool = False
 
 # Stage State Models  
@@ -38,6 +39,7 @@ class StageState(BaseModel):
     priceConditionDetails: str = ""
     displacement: bool = False
     displacementType: Optional[str] = None  # 'mss', 'fvg_cut'
+    screenshot: Optional[str] = None  # base64 encoded image
     completed: bool = False
 
 # Entry State Models
@@ -49,6 +51,7 @@ class EntryState(BaseModel):
     stopLossAt1: bool = False
     takeProfitAt0: bool = False
     riskReward: Optional[str] = None  # '1.5R', '2R', 'other'
+    screenshot: Optional[str] = None  # base64 encoded image
     completed: bool = False
 
 # Trading Setup Models
