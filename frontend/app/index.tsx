@@ -26,6 +26,7 @@ interface DirectionState {
   weeklyPattern: 'OHLC' | 'OLHC' | null;
   dailyBias: 'higher' | 'lower' | null;
   dailyAlignedWithWeekly: boolean;
+  screenshot: string | null; // base64 encoded image
   completed: boolean;
 }
 
@@ -34,6 +35,7 @@ interface StageState {
   priceConditionDetails: string;
   displacement: boolean;
   displacementType: 'mss' | 'fvg_cut' | null;
+  screenshot: string | null; // base64 encoded image
   completed: boolean;
 }
 
@@ -45,6 +47,7 @@ interface EntryState {
   stopLossAt1: boolean;
   takeProfitAt0: boolean;
   riskReward: '1.5R' | '2R' | 'other' | null;
+  screenshot: string | null; // base64 encoded image
   completed: boolean;
 }
 
