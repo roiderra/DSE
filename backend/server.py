@@ -26,33 +26,29 @@ api_router = APIRouter(prefix="/api")
 
 # Direction State Models
 class DirectionState(BaseModel):
-    pdArraysMarked: bool = False
-    biasFrame: Optional[str] = None  # 'weekly', 'daily', 'monthly'
-    biasType: Optional[str] = None   # 'bullish', 'bearish', 'none'
-    arrayInteraction: Optional[str] = None  # 'bullish_rejection', 'bearish_rejection', etc.
-    sweepExpected: bool = False
-    finalOutcome: Optional[str] = None  # 'bullish', 'bearish', 'no_trade'
+    weeklyBias: Optional[str] = None  # 'bullish', 'bearish'
+    weeklyPattern: Optional[str] = None  # 'OHLC', 'OLHC'
+    dailyBias: Optional[str] = None  # 'higher', 'lower'
+    dailyAlignedWithWeekly: bool = False
     completed: bool = False
 
 # Stage State Models  
 class StageState(BaseModel):
-    atPDArray: bool = False
-    stopsRun: bool = False
-    displacementOccurred: bool = False
-    mssOrFvgCut: bool = False
-    timeframesAligned: bool = False
+    priceCondition: Optional[str] = None  # 'pd_array', 'stops_run'
+    priceConditionDetails: str = ""
+    displacement: bool = False
+    displacementType: Optional[str] = None  # 'mss', 'fvg_cut'
     completed: bool = False
 
 # Entry State Models
 class EntryState(BaseModel):
-    swingPointIdentified: bool = False
-    stopRunConfirmed: bool = False
-    pdaRejectionConfirmed: bool = False
-    fibonacciApplied: bool = False
-    oteMet: bool = False
-    entryDefined: bool = False
-    slTpSet: bool = False
-    rrAcceptable: bool = False
+    highGradeSwingPoint: bool = False
+    swingPointType: Optional[str] = None  # 'liquidity_sweep', 'fvg_rebalance'
+    oteLevel: bool = False
+    entryAt062: bool = False
+    stopLossAt1: bool = False
+    takeProfitAt0: bool = False
+    riskReward: Optional[str] = None  # '1.5R', '2R', 'other'
     completed: bool = False
 
 # Trading Setup Models
