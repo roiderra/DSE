@@ -871,4 +871,169 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
   },
+  
+  // New styles for simplified UI
+  bullishOption: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  bearishOption: {
+    backgroundColor: '#f44336',
+    borderColor: '#f44336',
+  },
+  
+  alignmentWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+  },
+  conflictWarning: {
+    backgroundColor: '#2a1f1a',
+    borderColor: '#FF9800',
+  },
+  alignedWarning: {
+    backgroundColor: '#1a2a1a',
+    borderColor: '#4CAF50',
+  },
+  alignmentText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  conflictText: {
+    color: '#FF9800',
+  },
+  alignedText: {
+    color: '#4CAF50',
+  },
+  
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#555',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedRadio: {
+    borderColor: '#00D4FF',
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00D4FF',
+  },
+  
+  optionWithCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  
+  detailsInput: {
+    marginTop: 12,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: '#fff',
+    marginBottom: 6,
+  },
+  textInputContainer: {
+    backgroundColor: '#1a1a1a',
+    borderRadius: 6,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  textInputPlaceholder: {
+    color: '#888',
+    fontSize: 14,
+  },
+  
+  displacementTypeSection: {
+    marginTop: 12,
+  },
+  swingPointTypeSection: {
+    marginTop: 12,
+  },
+  
+  completionSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a2a1a',
+    padding: 16,
+    borderRadius: 8,
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  completionText: {
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4CAF50',
+  },
+  
+  rrButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#1a1a1a',
+    borderRadius: 6,
+    marginRight: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  selectedRR: {
+    borderWidth: 2,
+  },
+  goodRR: {
+    backgroundColor: '#4CAF50',
+    borderColor: '#4CAF50',
+  },
+  excellentRR: {
+    backgroundColor: '#2E7D32',
+    borderColor: '#2E7D32',
+  },
+  rrText: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  selectedRRText: {
+    color: '#fff',
+  },
+  
+  tradingReminderSection: {
+    backgroundColor: '#1a1a2a',
+    borderRadius: 8,
+    padding: 16,
+    marginVertical: 16,
+    borderWidth: 1,
+    borderColor: '#00D4FF',
+  },
+  reminderTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#00D4FF',
+    marginBottom: 12,
+  },
+  reminderContent: {
+    gap: 8,
+  },
+  reminderText: {
+    color: '#fff',
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  reminderBold: {
+    fontWeight: 'bold',
+    color: '#00D4FF',
+  },
 });
