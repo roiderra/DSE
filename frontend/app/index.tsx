@@ -23,8 +23,8 @@ interface TradingSetup {
 
 interface DirectionState {
   pdArraysMarked: boolean;
-  biasFrame: 'weekly' | 'daily' | 'monthly' | null;
-  biasType: 'bullish' | 'bearish' | 'none' | null;
+  weeklyBias: 'bullish' | 'bearish' | 'none' | null;
+  dailyBias: 'bullish' | 'bearish' | 'none' | null;
   arrayInteraction: 'bullish_rejection' | 'bearish_rejection' | 'between_arrays' | 'beyond_array' | null;
   sweepExpected: boolean;
   finalOutcome: 'bullish' | 'bearish' | 'no_trade' | null;
