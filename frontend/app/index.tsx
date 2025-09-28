@@ -63,6 +63,7 @@ export default function Index() {
       weeklyPattern: null,
       dailyBias: null,
       dailyAlignedWithWeekly: false,
+      screenshot: null,
       completed: false
     },
     stage: {
@@ -70,6 +71,7 @@ export default function Index() {
       priceConditionDetails: '',
       displacement: false,
       displacementType: null,
+      screenshot: null,
       completed: false
     },
     entry: {
@@ -80,6 +82,7 @@ export default function Index() {
       stopLossAt1: false,
       takeProfitAt0: false,
       riskReward: null,
+      screenshot: null,
       completed: false
     },
     createdAt: new Date().toISOString(),
