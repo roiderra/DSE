@@ -111,11 +111,14 @@ backend:
     file: "/app/backend/server.py"
     stuck_count: 0
     priority: "high"
-    needs_retesting: true
+    needs_retesting: false
     status_history:
       - working: true
         agent: "main"
         comment: "Implemented complete CRUD API for trading setups with Direction, Stage, Entry models"
+      - working: true
+        agent: "testing"
+        comment: "✅ All core CRUD operations working correctly: POST /api/setups (create), GET /api/setups (list), GET /api/setups/{id} (get specific), PUT /api/setups/{id} (update), DELETE /api/setups/{id} (delete), GET /api/setups/stats/summary (stats). Data persistence verified with MongoDB. Minor: Error handling for non-existent IDs returns 500 instead of 404, but core functionality is solid."
 
 frontend:
   - task: "Trading Checklist Mobile App"
