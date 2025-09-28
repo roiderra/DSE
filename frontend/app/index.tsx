@@ -56,6 +56,8 @@ interface EntryState {
 
 type TabType = 'direction' | 'stage' | 'entry';
 
+const { width } = Dimensions.get('window');
+
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabType>('direction');
   const [currentSetup, setCurrentSetup] = useState<TradingSetup>({
