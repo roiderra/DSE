@@ -318,57 +318,108 @@ export default function Index() {
     <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>STAGE</Text>
-        <Text style={styles.sectionSubtitle}>Confirm setup conditions are met</Text>
+        <Text style={styles.sectionSubtitle}>For the Stage I need to see these two things</Text>
       </View>
 
       <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>PART 1: THE AREA</Text>
-        <CheckboxItem
-          label="Price is at a 1H–4H PD Array (minimum) that supports your bias"
-          checked={currentSetup.stage.atPDArray}
-          onPress={(value) => updateStage('atPDArray', value)}
-        />
-        <CheckboxItem
-          label="OR Price made a run on previous week's/day's high/low"
-          checked={currentSetup.stage.stopsRun}
-          onPress={(value) => updateStage('stopsRun', value)}
-        />
+        <Text style={styles.checklistTitle}>1. Price Position Requirement</Text>
+        <Text style={styles.checklistSubtitle}>Select ONE of the following conditions:</Text>
+        
+        <View style={styles.optionColumn}>
+          <TouchableOpacity
+            style={[styles.listOption, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOption]}
+            onPress={() => updateStage('priceCondition', currentSetup.stage.priceCondition === 'pd_array' ? null : 'pd_array')}
+          >
+            <View style={styles.optionWithCheckbox}>
+              <View style={[styles.radioButton, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedRadio]}>
+                {currentSetup.stage.priceCondition === 'pd_array' && <View style={styles.radioDot} />}
+              </View>
+              <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOptionText]}>
+                Price is at or coming from a 4H+ PD Array in line with my bias
+              </Text>
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.listOption, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedListOption]}
+            onPress={() => updateStage('priceCondition', currentSetup.stage.priceCondition === 'stops_run' ? null : 'stops_run')}
+          >
+            <View style={styles.optionWithCheckbox}>
+              <View style={[styles.radioButton, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedRadio]}>
+                {currentSetup.stage.priceCondition === 'stops_run' && <View style={styles.radioDot} />}
+              </View>
+              <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedListOptionText]}>
+                Price made a stops run on PWH/PWL/PDH/PDL in line with my bias
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {currentSetup.stage.priceCondition && (
+          <View style={styles.detailsInput}>
+            <Text style={styles.inputLabel}>Details:</Text>
+            <View style={styles.textInputContainer}>
+              <Text style={styles.textInputPlaceholder}>
+                {currentSetup.stage.priceConditionDetails || 'Add specific details about the price condition...'}
+              </Text>
+            </View>
+          </View>
+        )}
       </View>
 
       <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>PART 2: CISOD (Change in State of Delivery)</Text>
-        <Text style={styles.checklistSubtitle}>A 15M–5M displacement that fulfills:</Text>
+        <Text style={styles.checklistTitle}>2. Displacement Confirmation</Text>
+        <Text style={styles.checklistSubtitle}>15m-5m displacement that causes:</Text>
         
         <CheckboxItem
-          label="15M–5M displacement occurred"
-          checked={currentSetup.stage.displacementOccurred}
-          onPress={(value) => updateStage('displacementOccurred', value)}
+          label="15m-5m displacement occurred"
+          checked={currentSetup.stage.displacement}
+          onPress={(value) => updateStage('displacement', value)}
         />
-        <CheckboxItem
-          label="Causes Market Structure Shift OR cuts through opposing FVG"
-          checked={currentSetup.stage.mssOrFvgCut}
-          onPress={(value) => updateStage('mssOrFvgCut', value)}
-        />
-        <CheckboxItem
-          label="15M and 5M timeframes are aligned (same order flow)"
-          checked={currentSetup.stage.timeframesAligned}
-          onPress={(value) => updateStage('timeframesAligned', value)}
-        />
+
+        {currentSetup.stage.displacement && (
+          <View style={styles.displacementTypeSection}>
+            <Text style={styles.optionLabel}>Displacement Type:</Text>
+            <View style={styles.optionColumn}>
+              <TouchableOpacity
+                style={[styles.listOption, currentSetup.stage.displacementType === 'mss' && styles.selectedListOption]}
+                onPress={() => updateStage('displacementType', currentSetup.stage.displacementType === 'mss' ? null : 'mss')}
+              >
+                <View style={styles.optionWithCheckbox}>
+                  <View style={[styles.radioButton, currentSetup.stage.displacementType === 'mss' && styles.selectedRadio]}>
+                    {currentSetup.stage.displacementType === 'mss' && <View style={styles.radioDot} />}
+                  </View>
+                  <Text style={[styles.listOptionText, currentSetup.stage.displacementType === 'mss' && styles.selectedListOptionText]}>
+                    Market Structure Shift (MSS)
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.listOption, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedListOption]}
+                onPress={() => updateStage('displacementType', currentSetup.stage.displacementType === 'fvg_cut' ? null : 'fvg_cut')}
+              >
+                <View style={styles.optionWithCheckbox}>
+                  <View style={[styles.radioButton, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedRadio]}>
+                    {currentSetup.stage.displacementType === 'fvg_cut' && <View style={styles.radioDot} />}
+                  </View>
+                  <Text style={[styles.listOptionText, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedListOptionText]}>
+                    Cuts through an opposing FVG
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
-      <View style={styles.gatekeeperSection}>
-        <Text style={styles.gatekeeperTitle}>⚠️ GATEKEEPER RULE</Text>
-        <View style={styles.gatekeeperContent}>
-          <Text style={styles.gatekeeperText}>
-            <Text style={styles.gatekeeperBold}>STAGE = TRADE</Text>
-            {'\n'}The stage must be met before looking for an entry
-          </Text>
-          <Text style={styles.gatekeeperText}>
-            <Text style={styles.gatekeeperBold}>NO MAN'S LAND = NO TRADE</Text>
-            {'\n'}Price between PDAs without stops run = Your entry is a mistake
-          </Text>
+      {/* Stage Completion Indicator */}
+      {currentSetup.stage.completed && (
+        <View style={styles.completionSection}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.completionText}>Stage requirements met - Ready for Entry</Text>
         </View>
-      </View>
+      )}
     </ScrollView>
   );
 
