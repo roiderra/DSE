@@ -384,6 +384,8 @@ export default function Index() {
           </Text>
         </View>
       )}
+
+      <ImageUploadSection section="direction" screenshot={currentSetup.direction.screenshot} />
     </ScrollView>
   );
 
