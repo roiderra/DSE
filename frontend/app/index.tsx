@@ -495,6 +495,8 @@ export default function Index() {
           <Text style={styles.completionText}>Stage requirements met - Ready for Entry</Text>
         </View>
       )}
+
+      <ImageUploadSection section="stage" screenshot={currentSetup.stage.screenshot} />
     </ScrollView>
   );
 
