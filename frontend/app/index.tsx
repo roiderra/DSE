@@ -427,67 +427,128 @@ export default function Index() {
     <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>ENTRY</Text>
-        <Text style={styles.sectionSubtitle}>Execute your trading plan</Text>
+        <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
       </View>
 
       <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>1. Identify Reliable Swing Point</Text>
+        <Text style={styles.checklistTitle}>High Grade Swing Point</Text>
+        <Text style={styles.checklistSubtitle}>A high/low that swept liquidity or rebalanced a FVG</Text>
+        
         <CheckboxItem
-          label="Swing point identified (avoid points near unfilled FVGs)"
-          checked={currentSetup.entry.swingPointIdentified}
-          onPress={(value) => updateEntry('swingPointIdentified', value)}
+          label="High grade swing point identified"
+          checked={currentSetup.entry.highGradeSwingPoint}
+          onPress={(value) => updateEntry('highGradeSwingPoint', value)}
         />
+
+        {currentSetup.entry.highGradeSwingPoint && (
+          <View style={styles.swingPointTypeSection}>
+            <Text style={styles.optionLabel}>Swing Point Type:</Text>
+            <View style={styles.optionColumn}>
+              <TouchableOpacity
+                style={[styles.listOption, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOption]}
+                onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'liquidity_sweep' ? null : 'liquidity_sweep')}
+              >
+                <View style={styles.optionWithCheckbox}>
+                  <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedRadio]}>
+                    {currentSetup.entry.swingPointType === 'liquidity_sweep' && <View style={styles.radioDot} />}
+                  </View>
+                  <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOptionText]}>
+                    Swept Liquidity
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.listOption, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOption]}
+                onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'fvg_rebalance' ? null : 'fvg_rebalance')}
+              >
+                <View style={styles.optionWithCheckbox}>
+                  <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedRadio]}>
+                    {currentSetup.entry.swingPointType === 'fvg_rebalance' && <View style={styles.radioDot} />}
+                  </View>
+                  <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOptionText]}>
+                    Rebalanced a FVG
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.checklistSection}>
+        <Text style={styles.checklistTitle}>OTE Setup</Text>
+        
         <CheckboxItem
-          label="After Stop Run / Liquidity Run (Smart Money Reversal)"
-          checked={currentSetup.entry.stopRunConfirmed}
-          onPress={(value) => updateEntry('stopRunConfirmed', value)}
+          label="OTE level identified and price approaching"
+          checked={currentSetup.entry.oteLevel}
+          onPress={(value) => updateEntry('oteLevel', value)}
         />
+        
         <CheckboxItem
-          label="After PDA Rejection (Silver Bullet - second phase distribution)"
-          checked={currentSetup.entry.pdaRejectionConfirmed}
-          onPress={(value) => updateEntry('pdaRejectionConfirmed', value)}
+          label="Enter at 0.62 retracement level"
+          checked={currentSetup.entry.entryAt062}
+          onPress={(value) => updateEntry('entryAt062', value)}
         />
       </View>
 
       <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>2. Apply Fibonacci Retracement</Text>
+        <Text style={styles.checklistTitle}>Risk Management</Text>
+        
         <CheckboxItem
-          label="Fibonacci applied: 1 Fib on swing point, 0 Fib on displacement end"
-          checked={currentSetup.entry.fibonacciApplied}
-          onPress={(value) => updateEntry('fibonacciApplied', value)}
+          label="Stop loss goes at 1 (above/below swing point)"
+          checked={currentSetup.entry.stopLossAt1}
+          onPress={(value) => updateEntry('stopLossAt1', value)}
         />
+        
         <CheckboxItem
-          label="OTE Zone identified: 0.62–0.705 Fib (0.79 occasionally)"
-          checked={currentSetup.entry.oteMet}
-          onPress={(value) => updateEntry('oteMet', value)}
+          label="Take profit goes at 0 (displacement end)"
+          checked={currentSetup.entry.takeProfitAt0}
+          onPress={(value) => updateEntry('takeProfitAt0', value)}
         />
+
+        <Text style={styles.optionLabel}>Risk-Reward Ratio:</Text>
+        <View style={styles.optionRow}>
+          {(['1.5R', '2R', 'other'] as const).map((rr) => (
+            <TouchableOpacity
+              key={rr}
+              style={[
+                styles.rrButton,
+                currentSetup.entry.riskReward === rr && styles.selectedRR,
+                rr === '1.5R' && currentSetup.entry.riskReward === rr && styles.goodRR,
+                rr === '2R' && currentSetup.entry.riskReward === rr && styles.excellentRR
+              ]}
+              onPress={() => updateEntry('riskReward', rr)}
+            >
+              <Text style={[styles.rrText, currentSetup.entry.riskReward === rr && styles.selectedRRText]}>
+                {rr}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
-      <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>3. Define Entry, Stop Loss & Take Profit</Text>
-        <CheckboxItem
-          label="Entry trigger set: Price reaches OTE zone + PD Arrays within OTE"
-          checked={currentSetup.entry.entryDefined}
-          onPress={(value) => updateEntry('entryDefined', value)}
-        />
-        <CheckboxItem
-          label="Stop Loss: Beyond 1 Fib or nearby swing high/low"
-          checked={currentSetup.entry.slTpSet}
-          onPress={(value) => updateEntry('slTpSet', value)}
-        />
-        <CheckboxItem
-          label="Take Profit: Minimum 0 Fib (R:R >1.5 maintained)"
-          checked={currentSetup.entry.rrAcceptable}
-          onPress={(value) => updateEntry('rrAcceptable', value)}
-        />
+      <View style={styles.tradingReminderSection}>
+        <Text style={styles.reminderTitle}>💡 TRADING REMINDER</Text>
+        <View style={styles.reminderContent}>
+          <Text style={styles.reminderText}>
+            <Text style={styles.reminderBold}>Consistent 1.5-2R trades</Text>
+            {'\n'}Rinse and repeat
+          </Text>
+          <Text style={styles.reminderText}>
+            <Text style={styles.reminderBold}>Entry Formula:</Text>
+            {'\n'}OTE from a high grade swing point
+          </Text>
+        </View>
       </View>
 
-      <View style={styles.summarySection}>
-        <Text style={styles.summaryTitle}>📋 ENTRY SUMMARY</Text>
-        <Text style={styles.summaryText}>
-          ENTRY = OTE from a High-Graded Swing Point + PDA
-        </Text>
-      </View>
+      {/* Entry Completion Indicator */}
+      {currentSetup.entry.completed && (
+        <View style={styles.completionSection}>
+          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+          <Text style={styles.completionText}>Entry plan complete - Ready to execute</Text>
+        </View>
+      )}
     </ScrollView>
   );
 
