@@ -182,6 +182,68 @@ export default function Index() {
            entry.riskReward !== null;
   };
 
+  const pickImage = async (section: 'direction' | 'stage' | 'entry') => {
+    try {
+      // Request permissions
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert("Permission Required", "Permission to access camera roll is required to upload screenshots!");
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [16, 9],
+        quality: 0.8,
+        base64: true
+      });
+
+      if (!result.canceled && result.assets[0].base64) {
+        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Update the appropriate section with the image
+        if (section === 'direction') {
+          updateDirection('screenshot', base64Image);
+        } else if (section === 'stage') {
+          updateStage('screenshot', base64Image);
+        } else if (section === 'entry') {
+          updateEntry('screenshot', base64Image);
+        }
+        
+        Alert.alert("Success", "Screenshot uploaded successfully!");
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert("Error", "Failed to upload screenshot. Please try again.");
+    }
+  };
+
+  const removeImage = (section: 'direction' | 'stage' | 'entry') => {
+    Alert.alert(
+      "Remove Screenshot",
+      "Are you sure you want to remove this screenshot?",
+      [
+        { text: "Cancel", style: "cancel" },
+        { 
+          text: "Remove", 
+          style: "destructive",
+          onPress: () => {
+            if (section === 'direction') {
+              updateDirection('screenshot', null);
+            } else if (section === 'stage') {
+              updateStage('screenshot', null);
+            } else if (section === 'entry') {
+              updateEntry('screenshot', null);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const renderTabButton = (tab: TabType, icon: string, label: string) => {
     const isActive = activeTab === tab;
     const isCompleted = tab === 'direction' ? currentSetup.direction.completed :
