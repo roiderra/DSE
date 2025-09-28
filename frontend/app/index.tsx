@@ -626,6 +626,8 @@ export default function Index() {
           <Text style={styles.completionText}>Entry plan complete - Ready to execute</Text>
         </View>
       )}
+
+      <ImageUploadSection section="entry" screenshot={currentSetup.entry.screenshot} />
     </ScrollView>
   );
 
