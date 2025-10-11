@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import Dict, Any, List
 
 # Use the frontend environment URL for testing
-BASE_URL = "https://trading-compass-19.preview.emergentagent.com/api"
+BASE_URL = "https://forex-checklist.preview.emergentagent.com/api"
 
 class ForexTradingAPITester:
     def __init__(self):
