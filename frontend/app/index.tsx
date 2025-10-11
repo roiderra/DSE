@@ -557,48 +557,57 @@ export default function Index() {
   };
 
   const updateDirection = (field: keyof DirectionState, value: any) => {
-    setCurrentSetup(prev => ({
-      ...prev,
+    const newSetup = {
+      ...currentSetup,
       direction: {
-        ...prev.direction,
+        ...currentSetup.direction,
         [field]: value,
         completed: checkDirectionCompleted({
-          ...prev.direction,
+          ...currentSetup.direction,
           [field]: value
         })
       },
       updatedAt: new Date().toISOString()
-    }));
+    };
+    
+    setCurrentSetup(newSetup);
+    saveSetupToStorage(newSetup); // Автоматически сохраняем
   };
 
   const updateStage = (field: keyof StageState, value: any) => {
-    setCurrentSetup(prev => ({
-      ...prev,
+    const newSetup = {
+      ...currentSetup,
       stage: {
-        ...prev.stage,
+        ...currentSetup.stage,
         [field]: value,
         completed: checkStageCompleted({
-          ...prev.stage,
+          ...currentSetup.stage,
           [field]: value
         })
       },
       updatedAt: new Date().toISOString()
-    }));
+    };
+    
+    setCurrentSetup(newSetup);
+    saveSetupToStorage(newSetup); // Автоматически сохраняем
   };
 
   const updateEntry = (field: keyof EntryState, value: any) => {
-    setCurrentSetup(prev => ({
-      ...prev,
+    const newSetup = {
+      ...currentSetup,
       entry: {
-        ...prev.entry,
+        ...currentSetup.entry,
         [field]: value,
         completed: checkEntryCompleted({
-          ...prev.entry,
+          ...currentSetup.entry,
           [field]: value
         })
       },
       updatedAt: new Date().toISOString()
-    }));
+    };
+    
+    setCurrentSetup(newSetup);
+    saveSetupToStorage(newSetup); // Автоматически сохраняем
   };
 
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
