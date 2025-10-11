@@ -142,26 +142,8 @@ export default function Index() {
   // УДАЛЕНЫ функции автоматического сохранения чтобы избежать перезаписи
 
   const saveSetup = async () => {
-    console.log('🚀 saveSetup started');
-    try {
-      // Обновляем временную метку
-      const updatedSetup = {
-        ...currentSetup,
-        updatedAt: new Date().toISOString()
-      };
-      
-      // Сохраняем в локальное хранилище
-      await saveSetupToStorage(updatedSetup);
-      setCurrentSetup(updatedSetup);
-      console.log('✅ Setup saved to storage');
-      
-      // Генерируем отчет напрямую
-      await generateReport();
-      
-    } catch (error) {
-      console.error('❌ Failed to save setup:', error);
-      Alert.alert('Error', 'Failed to save setup. Please try again.');
-    }
+    console.log('🚀 saveSetup called (noop for now)');
+    // No-op: explicit save is not required; generation handles persistence
   };
 
   const generateReport = async () => {
