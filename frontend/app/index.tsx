@@ -544,7 +544,7 @@ Screenshots are saved locally with the setup data.`;
     };
     
     setCurrentSetup(newSetup);
-    saveSetupToStorage(newSetup); // Автоматически сохраняем
+    // УБРАНО автоматическое сохранение для предотвращения перезаписи памяти
   };
 
   const updateStage = (field: keyof StageState, value: any) => {
@@ -562,7 +562,7 @@ Screenshots are saved locally with the setup data.`;
     };
     
     setCurrentSetup(newSetup);
-    saveSetupToStorage(newSetup); // Автоматически сохраняем
+    // УБРАНО автоматическое сохранение для предотвращения перезаписи памяти
   };
 
   const updateEntry = (field: keyof EntryState, value: any) => {
@@ -580,7 +580,7 @@ Screenshots are saved locally with the setup data.`;
     };
     
     setCurrentSetup(newSetup);
-    saveSetupToStorage(newSetup); // Автоматически сохраняем
+    // УБРАНО автоматическое сохранение для предотвращения перезаписи памяти
   };
 
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
