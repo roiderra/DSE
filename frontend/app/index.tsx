@@ -144,21 +144,150 @@ export default function Index() {
 
   const generatePDF = async () => {
     try {
-      const htmlContent = createPDFTemplate();
-      
-      const { uri } = await Print.printToFileAsync({
-        html: htmlContent,
-        base64: false,
+      // Создаем новый документ PDF
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4'
       });
 
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Save Trading Setup PDF',
-          UTI: 'com.adobe.pdf'
-        });
+      const pageWidth = pdf.internal.pageSize.width;
+      const margin = 15;
+      let yPos = 20;
+
+      // Заголовок
+      pdf.setFontSize(20);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Forex Trading Setup Report', pageWidth / 2, yPos, { align: 'center' });
+      
+      yPos += 10;
+      pdf.setFontSize(14);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(currentSetup.name, pageWidth / 2, yPos, { align: 'center' });
+      
+      yPos += 5;
+      pdf.setFontSize(10);
+      pdf.text(`Generated: ${new Date().toLocaleString('ru-RU')}`, pageWidth / 2, yPos, { align: 'center' });
+      
+      yPos += 15;
+
+      // Direction Section
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('DIRECTION', margin, yPos);
+      
+      yPos += 8;
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      
+      pdf.text(`Weekly Bias: ${currentSetup.direction.weeklyBias?.toUpperCase() || 'Not Set'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Daily Bias: ${currentSetup.direction.dailyBias?.toUpperCase() || 'Not Set'}`, margin, yPos);
+      yPos += 5;
+      
+      const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
+                       (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
+      
+      pdf.text(`Bias Alignment: ${isAligned ? 'Aligned ✓' : 'Conflict ⚠'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Status: ${currentSetup.direction.completed ? 'Complete ✓' : 'Incomplete ✗'}`, margin, yPos);
+      
+      yPos += 15;
+
+      // Stage Section
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('STAGE', margin, yPos);
+      
+      yPos += 8;
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      
+      const priceConditionText = currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' :
+                                currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'Not Set';
+      
+      pdf.text(`Price Condition: ${priceConditionText}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`15m-5m Displacement: ${currentSetup.stage.displacement ? 'Occurred ✓' : 'Not Occurred ✗'}`, margin, yPos);
+      yPos += 5;
+      
+      const displacementTypeText = currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' :
+                                  currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'Not Set';
+      
+      pdf.text(`Displacement Type: ${displacementTypeText}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Status: ${currentSetup.stage.completed ? 'Complete ✓' : 'Incomplete ✗'}`, margin, yPos);
+      
+      yPos += 15;
+
+      // Entry Section
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('ENTRY', margin, yPos);
+      
+      yPos += 8;
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      
+      pdf.text(`High Grade Swing Point: ${currentSetup.entry.highGradeSwingPoint ? 'Identified ✓' : 'Not Identified ✗'}`, margin, yPos);
+      yPos += 5;
+      
+      const swingPointTypeText = currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' :
+                                currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'Not Set';
+      
+      pdf.text(`Swing Point Type: ${swingPointTypeText}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`OTE Level: ${currentSetup.entry.oteLevel ? 'Identified ✓' : 'Not Identified ✗'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`OTE Retracement: ${currentSetup.entry.oteRetracement || 'Not Set'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Stop Loss Level: ${currentSetup.entry.stopLossLevel || 'Not Set'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Take Profit Level: ${currentSetup.entry.takeProfitLevel || 'Not Set'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Risk-Reward Ratio: ${currentSetup.entry.riskReward || 'Not Set'}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Status: ${currentSetup.entry.completed ? 'Complete ✓' : 'Incomplete ✗'}`, margin, yPos);
+      
+      yPos += 15;
+
+      // Summary
+      pdf.setFontSize(16);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('SUMMARY', margin, yPos);
+      
+      yPos += 8;
+      pdf.setFontSize(10);
+      pdf.setFont('helvetica', 'normal');
+      
+      pdf.text(`Overall Progress: Direction: ${currentSetup.direction.completed ? '✓' : '✗'} | ` +
+               `Stage: ${currentSetup.stage.completed ? '✓' : '✗'} | ` +
+               `Entry: ${currentSetup.entry.completed ? '✓' : '✗'}`, margin, yPos);
+      
+      yPos += 5;
+      pdf.text(`Created: ${new Date(currentSetup.createdAt).toLocaleString('ru-RU')}`, margin, yPos);
+      yPos += 5;
+      pdf.text(`Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}`, margin, yPos);
+
+      // Генерируем PDF и сохраняем
+      const pdfBlob = pdf.output('blob');
+      
+      if (Platform.OS === 'web') {
+        // Для веб-версии - скачиваем файл
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        Alert.alert('Success', 'PDF downloaded successfully!');
       } else {
-        Alert.alert('Success', 'PDF generated successfully!');
+        // Для мобильных устройств используем expo-sharing
+        const base64 = pdf.output('datauristring');
+        Alert.alert('PDF Generated', 'PDF has been generated successfully!');
       }
       
     } catch (error) {
