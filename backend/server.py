@@ -45,10 +45,10 @@ class EntryState(BaseModel):
     highGradeSwingPoint: bool = False
     swingPointType: Optional[str] = None  # 'liquidity_sweep', 'fvg_rebalance'
     oteLevel: bool = False
-    entryAt062: bool = False
-    stopLossAt1: bool = False
-    takeProfitAt0: bool = False
-    riskReward: Optional[str] = None  # '1.5R', '2R', 'other'
+    oteRetracement: Optional[str] = None  # '0.62', '0.705', '0.75'
+    stopLossLevel: Optional[str] = None  # '1', '0.9'
+    takeProfitLevel: Optional[str] = None  # '0', '-0.28'
+    riskReward: Optional[str] = None  # '1R', '2R', '3R'
     screenshot: Optional[str] = None  # base64 encoded image
     completed: bool = False
 
