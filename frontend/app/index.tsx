@@ -94,22 +94,66 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Полная очистка памяти при каждом запуске
+  // Агрессивная очистка всей памяти при каждом запуске
   useEffect(() => {
-    console.log('🧹 App started - clearing all memory');
+    console.log('🧹 App started - AGGRESSIVELY clearing ALL memory');
     
-    // Полностью очищаем localStorage
-    if (typeof localStorage !== 'undefined') {
-      try {
+    // 1. Очищаем localStorage полностью
+    try {
+      if (typeof localStorage !== 'undefined') {
         localStorage.clear();
-        console.log('✅ localStorage cleared completely');
-      } catch (error) {
-        console.log('localStorage clear failed:', error);
+        console.log('✅ localStorage cleared');
       }
+    } catch (error) {
+      console.log('localStorage clear failed:', error);
     }
     
-    // Устанавливаем флаг что память очищена
-    console.log('🎯 Memory cleared - starting fresh');
+    // 2. Очищаем sessionStorage
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.clear();
+        console.log('✅ sessionStorage cleared');
+      }
+    } catch (error) {
+      console.log('sessionStorage clear failed:', error);
+    }
+    
+    // 3. Принудительно сбрасываем состояние к начальному
+    const freshSetup: TradingSetup = {
+      id: '',
+      name: `Setup ${new Date().toLocaleDateString()}`,
+      direction: {
+        weeklyBias: null,
+        dailyBias: null,
+        screenshot: null,
+        completed: false
+      },
+      stage: {
+        priceCondition: null,
+        displacement: false,
+        displacementType: null,
+        screenshot: null,
+        completed: false
+      },
+      entry: {
+        highGradeSwingPoint: false,
+        swingPointType: null,
+        oteLevel: false,
+        oteRetracement: null,
+        stopLossLevel: null,
+        takeProfitLevel: null,
+        riskReward: null,
+        screenshot: null,
+        completed: false
+      },
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    setCurrentSetup(freshSetup);
+    setActiveTab('direction');
+    
+    console.log('🎯 FORCED fresh state set - completely clean start');
   }, []);
 
   // УДАЛЕНЫ функции автоматического сохранения чтобы избежать перезаписи
