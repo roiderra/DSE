@@ -496,7 +496,7 @@ export default function Index() {
 
         {currentSetup.entry.highGradeSwingPoint && (
           <View style={styles.swingPointTypeSection}>
-            <Text style={styles.optionLabel}>Swing Point Type:</Text>
+            <Text style={styles.optionLabel}>Swing Point must fulfill ONE condition:</Text>
             <View style={styles.optionColumn}>
               <TouchableOpacity
                 style={[styles.listOption, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOption]}
@@ -539,38 +539,66 @@ export default function Index() {
           onPress={(value) => updateEntry('oteLevel', value)}
         />
         
-        <CheckboxItem
-          label="Enter at 0.62 retracement level"
-          checked={currentSetup.entry.entryAt062}
-          onPress={(value) => updateEntry('entryAt062', value)}
-        />
+        <Text style={styles.optionLabel}>OTE Retracement Level:</Text>
+        <View style={styles.optionRow}>
+          {(['0.62', '0.705', '0.75'] as const).map((level) => (
+            <TouchableOpacity
+              key={level}
+              style={[styles.optionButton, currentSetup.entry.oteRetracement === level && styles.selectedOption]}
+              onPress={() => updateEntry('oteRetracement', level)}
+            >
+              <Text style={[styles.optionText, currentSetup.entry.oteRetracement === level && styles.selectedOptionText]}>
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={styles.checklistSection}>
         <Text style={styles.checklistTitle}>Risk Management</Text>
         
-        <CheckboxItem
-          label="Stop loss goes at 1 (above/below swing point)"
-          checked={currentSetup.entry.stopLossAt1}
-          onPress={(value) => updateEntry('stopLossAt1', value)}
-        />
+        <Text style={styles.optionLabel}>Stop Loss Level:</Text>
+        <View style={styles.optionRow}>
+          {(['1', '0.9'] as const).map((level) => (
+            <TouchableOpacity
+              key={level}
+              style={[styles.optionButton, currentSetup.entry.stopLossLevel === level && styles.selectedOption]}
+              onPress={() => updateEntry('stopLossLevel', level)}
+            >
+              <Text style={[styles.optionText, currentSetup.entry.stopLossLevel === level && styles.selectedOptionText]}>
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
         
-        <CheckboxItem
-          label="Take profit goes at 0 (displacement end)"
-          checked={currentSetup.entry.takeProfitAt0}
-          onPress={(value) => updateEntry('takeProfitAt0', value)}
-        />
+        <Text style={styles.optionLabel}>Take Profit Level:</Text>
+        <View style={styles.optionRow}>
+          {(['0', '-0.28'] as const).map((level) => (
+            <TouchableOpacity
+              key={level}
+              style={[styles.optionButton, currentSetup.entry.takeProfitLevel === level && styles.selectedOption]}
+              onPress={() => updateEntry('takeProfitLevel', level)}
+            >
+              <Text style={[styles.optionText, currentSetup.entry.takeProfitLevel === level && styles.selectedOptionText]}>
+                {level}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <Text style={styles.optionLabel}>Risk-Reward Ratio:</Text>
         <View style={styles.optionRow}>
-          {(['1.5R', '2R', 'other'] as const).map((rr) => (
+          {(['1R', '2R', '3R'] as const).map((rr) => (
             <TouchableOpacity
               key={rr}
               style={[
                 styles.rrButton,
                 currentSetup.entry.riskReward === rr && styles.selectedRR,
-                rr === '1.5R' && currentSetup.entry.riskReward === rr && styles.goodRR,
-                rr === '2R' && currentSetup.entry.riskReward === rr && styles.excellentRR
+                rr === '1R' && currentSetup.entry.riskReward === rr && styles.goodRR,
+                rr === '2R' && currentSetup.entry.riskReward === rr && styles.excellentRR,
+                rr === '3R' && currentSetup.entry.riskReward === rr && styles.perfectRR
               ]}
               onPress={() => updateEntry('riskReward', rr)}
             >
@@ -586,7 +614,7 @@ export default function Index() {
         <Text style={styles.reminderTitle}>💡 TRADING REMINDER</Text>
         <View style={styles.reminderContent}>
           <Text style={styles.reminderText}>
-            <Text style={styles.reminderBold}>Consistent 1.5-2R trades</Text>
+            <Text style={styles.reminderBold}>Consistent 1R-3R trades</Text>
             {'\n'}Rinse and repeat
           </Text>
           <Text style={styles.reminderText}>
