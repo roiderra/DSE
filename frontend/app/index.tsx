@@ -158,7 +158,6 @@ export default function Index() {
 
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
-           direction.weeklyPattern !== null && 
            direction.dailyBias !== null;
   };
 
