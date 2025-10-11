@@ -987,11 +987,9 @@ export default function Index() {
                     text: 'Clear All Data', 
                     style: 'destructive',
                     onPress: () => {
-                      // Полная очистка
-                      localStorage.clear();
-                      sessionStorage.clear();
-                      
-                      // Сброс состояния
+                      // Полная очистка через AsyncStorage
+                      AsyncStorage.clear();
+
                       const freshSetup: TradingSetup = {
                         id: '',
                         name: `Fresh Setup ${new Date().toLocaleDateString()}`,
@@ -999,14 +997,14 @@ export default function Index() {
                           weeklyBias: null,
                           dailyBias: null,
                           screenshot: null,
-                          completed: false
+                          completed: false,
                         },
                         stage: {
                           priceCondition: null,
                           displacement: false,
                           displacementType: null,
                           screenshot: null,
-                          completed: false
+                          completed: false,
                         },
                         entry: {
                           highGradeSwingPoint: false,
@@ -1017,15 +1015,15 @@ export default function Index() {
                           takeProfitLevel: null,
                           riskReward: null,
                           screenshot: null,
-                          completed: false
+                          completed: false,
                         },
                         createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString()
+                        updatedAt: new Date().toISOString(),
                       };
-                      
+
                       setCurrentSetup(freshSetup);
                       setActiveTab('direction');
-                      
+
                       console.log('✅ Manual clear completed');
                       Alert.alert('Success', 'All data cleared! App reset to fresh state.');
                     }
