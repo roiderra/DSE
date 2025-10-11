@@ -129,10 +129,10 @@ export default function Index() {
       // Генерируем PDF
       Alert.alert(
         'Setup Saved!',
-        'Would you like to generate and download a PDF report?',
+        'Would you like to generate and download a report?',
         [
           { text: 'Not Now', style: 'cancel' },
-          { text: 'Generate PDF', onPress: generatePDF }
+          { text: 'Generate Report', onPress: generateReport }
         ]
       );
     } catch (error) {
