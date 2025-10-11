@@ -93,10 +93,29 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Загрузка данных из локального хранилища при старте
+  // Очистка памяти при загрузке страницы и загрузка данных
   useEffect(() => {
+    // Очищаем память при каждой перезагрузке страницы
+    clearMemoryOnPageLoad();
+    // Затем загружаем данные (если есть)
     loadSetupFromStorage();
   }, []);
+
+  const clearMemoryOnPageLoad = () => {
+    try {
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        // Очищаем все данные при перезагрузке страницы
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('trading_report_') || key === 'currentTradingSetup') {
+            localStorage.removeItem(key);
+          }
+        });
+        console.log('🧹 Memory cleared on page reload');
+      }
+    } catch (error) {
+      console.log('Memory clear failed:', error);
+    }
+  };
 
   const loadSetupFromStorage = async () => {
     try {
