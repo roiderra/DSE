@@ -147,80 +147,121 @@ export default function Index() {
   };
 
   const generateReport = async () => {
+    // Генерация PDF с встраиванием скриншотов в соответствующие разделы
     try {
-      console.log('🚀 generateReport function called');
-      
-      const now = new Date().toLocaleString('ru-RU');
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
-                       (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
+        (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
 
-      // Создаем текстовый отчет
-      const reportText = `FOREX TRADING SETUP REPORT
-==========================
-Setup Name: ${currentSetup.name}
-Generated: ${now}
+      const safe = (v: any) => (v ?? '').toString();
 
-DIRECTION
----------
-Weekly Bias: ${currentSetup.direction.weeklyBias?.toUpperCase() || 'Not Set'}
-Daily Bias: ${currentSetup.direction.dailyBias?.toUpperCase() || 'Not Set'}
-Bias Alignment: ${isAligned ? 'Aligned ✓' : 'Conflict ⚠'}
-Screenshot: ${currentSetup.direction.screenshot ? 'Uploaded ✓' : 'Not Uploaded ✗'}
-Status: ${currentSetup.direction.completed ? 'Complete ✓' : 'Incomplete ✗'}
+      const html = `
+      <html>
+      <head>
+        <meta charset="utf-8" />
+        <style>
+          body { font-family: -apple-system, Roboto, Helvetica, Arial, sans-serif; padding: 16px; background: #0a0a0a; color: #fff; }
+          h1 { color: #00D4FF; }
+          h2 { color: #00D4FF; margin-top: 24px; }
+          .section { border:1px solid #333; border-radius:12px; padding:12px; margin: 12px 0; background:#121212; }
+          .row { margin: 6px 0; }
+          .label { color:#aaa; }
+          .value { color:#fff; font-weight:600; }
+          .good { color:#4CAF50; }
+          .warn { color:#FF9800; }
+          img { width:100%; max-height:320px; object-fit:cover; border-radius:8px; margin-top:8px; }
+        </style>
+      </head>
+      <body>
+        <h1>Forex Trading Setup</h1>
+        <div class="row"><span class="label">Setup:</span> <span class="value">${safe(currentSetup.name)}</span></div>
+        <div class="row"><span class="label">Generated:</span> <span class="value">${new Date().toLocaleString('ru-RU')}</span></div>
 
-STAGE
------
-Price Condition: ${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'Not Set'}
-15m-5m Displacement: ${currentSetup.stage.displacement ? 'Occurred ✓' : 'Not Occurred ✗'}
-Displacement Type: ${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'Not Set'}
-Screenshot: ${currentSetup.stage.screenshot ? 'Uploaded ✓' : 'Not Uploaded ✗'}
-Status: ${currentSetup.stage.completed ? 'Complete ✓' : 'Incomplete ✗'}
+        <h2>Direction</h2>
+        <div class="section">
+          <div class="row"><span class="label">Weekly Bias:</span> <span class="value">${safe(currentSetup.direction.weeklyBias)?.toUpperCase() || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">Daily Bias:</span> <span class="value">${safe(currentSetup.direction.dailyBias)?.toUpperCase() || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">Bias Alignment:</span> <span class="value ${isAligned ? 'good' : 'warn'}">${isAligned ? 'ALIGNED ✓' : 'CONFLICT ⚠'}</span></div>
+          ${currentSetup.direction.screenshot ? `<img src="${currentSetup.direction.screenshot}" />` : ''}
+        </div>
 
-ENTRY
------
-High Grade Swing Point: ${currentSetup.entry.highGradeSwingPoint ? 'Identified ✓' : 'Not Identified ✗'}
-Swing Point Type: ${currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' : currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'Not Set'}
-OTE Level: ${currentSetup.entry.oteLevel ? 'Identified ✓' : 'Not Identified ✗'}
-OTE Retracement: ${currentSetup.entry.oteRetracement || 'Not Set'}
-Stop Loss Level: ${currentSetup.entry.stopLossLevel || 'Not Set'}
-Take Profit Level: ${currentSetup.entry.takeProfitLevel || 'Not Set'}
-Risk-Reward Ratio: ${currentSetup.entry.riskReward || 'Not Set'}
-Screenshot: ${currentSetup.entry.screenshot ? 'Uploaded ✓' : 'Not Uploaded ✗'}
-Status: ${currentSetup.entry.completed ? 'Complete ✓' : 'Incomplete ✗'}
+        <h2>Stage</h2>
+        <div class="section">
+          <div class="row"><span class="label">Price Condition:</span> <span class="value">${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'NOT SET'}</span></div>
+          <div class="row"><span class="label">15m-5m Displacement:</span> <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span></div>
+          <div class="row"><span class="label">Displacement Type:</span> <span class="value">${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'NOT SET'}</span></div>
+          ${currentSetup.stage.screenshot ? `<img src="${currentSetup.stage.screenshot}" />` : ''}
+        </div>
 
-SUMMARY
--------
-Overall Progress: Direction: ${currentSetup.direction.completed ? '✓' : '✗'} | Stage: ${currentSetup.stage.completed ? '✓' : '✗'} | Entry: ${currentSetup.entry.completed ? '✓' : '✗'}
-Created: ${new Date(currentSetup.createdAt).toLocaleString('ru-RU')}
-Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}
+        <h2>Entry</h2>
+        <div class="section">
+          <div class="row"><span class="label">High Grade Swing Point:</span> <span class="value">${currentSetup.entry.highGradeSwingPoint ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}</span></div>
+          <div class="row"><span class="label">Swing Point Type:</span> <span class="value">${currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' : currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'NOT SET'}</span></div>
+          <div class="row"><span class="label">OTE Level:</span> <span class="value">${currentSetup.entry.oteLevel ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}</span></div>
+          <div class="row"><span class="label">OTE Retracement:</span> <span class="value">${currentSetup.entry.oteRetracement || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">Stop Loss:</span> <span class="value">${currentSetup.entry.stopLossLevel || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">Take Profit:</span> <span class="value">${currentSetup.entry.takeProfitLevel || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">Risk-Reward:</span> <span class="value">${currentSetup.entry.riskReward || 'NOT SET'}</span></div>
+          ${currentSetup.entry.screenshot ? `<img src="${currentSetup.entry.screenshot}" />` : ''}
+        </div>
 
-Screenshots are saved locally with the setup data.`;
+        <h2>Summary</h2>
+        <div class="section">
+          <div class="row">Overall Progress: Direction [${currentSetup.direction.completed ? '✓' : '✗'}] | Stage [${currentSetup.stage.completed ? '✓' : '✗'}] | Entry [${currentSetup.entry.completed ? '✓' : '✗'}]</div>
+          <div class="row">Created: ${new Date(currentSetup.createdAt).toLocaleString('ru-RU')}</div>
+          <div class="row">Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}</div>
+        </div>
+      </body>
+      </html>`;
 
-      console.log('📄 Report text created');
-
-      // Создаем и скачиваем файл (работает в веб-браузере)
-      try {
-        const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
+      if (Platform.OS === 'web') {
+        // Простая веб-фоллбек стратегия: скачать HTML как .html или .txt (без сторонних либ)
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.txt`;
+        a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.html`;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        console.log('💾 File download initiated');
-      } catch (downloadError) {
-        console.error('Download failed:', downloadError);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html });
+        let targetUri = uri;
+        // Переименуем файл и переместим в Documents
+        const newPath = `${FileSystem.documentDirectory}forex-report-${Date.now()}.pdf`;
+        await FileSystem.moveAsync({ from: uri, to: newPath });
+        targetUri = newPath;
+
+        const canShare = await Sharing.isAvailableAsync();
+        if (canShare) {
+          await Sharing.shareAsync(targetUri, { dialogTitle: 'Share trading report PDF' });
+        }
       }
-      
-      // Очищаем всю память и начинаем с чистого листа
-      clearAllData();
-      
-    } catch (error) {
-      console.error('❌ Error in generateReport:', error);
-      Alert.alert('Error', `Failed to generate report: ${error.message}`);
+
+      // Авто очистка и возврат на Direction
+      await clearAllData();
+    } catch (e: any) {
+      console.error('PDF generation failed, falling back to text:', e);
+      // Как фоллбек создаем текстовый отчет (веб скачает файл)
+      try {
+        const text = 'Report failed to render as PDF. Please try again.';
+        if (Platform.OS === 'web') {
+          const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.txt`;
+          a.style.display = 'none';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+      } catch (err) {
+        console.error('Fallback save failed:', err);
+      }
+      await clearAllData();
     }
   };
 
