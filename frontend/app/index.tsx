@@ -44,10 +44,10 @@ interface EntryState {
   highGradeSwingPoint: boolean;
   swingPointType: 'liquidity_sweep' | 'fvg_rebalance' | null;
   oteLevel: boolean;
-  entryAt062: boolean;
-  stopLossAt1: boolean;
-  takeProfitAt0: boolean;
-  riskReward: '1.5R' | '2R' | 'other' | null;
+  oteRetracement: '0.62' | '0.705' | '0.75' | null;
+  stopLossLevel: '1' | '0.9' | null;
+  takeProfitLevel: '0' | '-0.28' | null;
+  riskReward: '1R' | '2R' | '3R' | null;
   screenshot: string | null; // base64 encoded image
   completed: boolean;
 }
