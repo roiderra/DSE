@@ -71,7 +71,6 @@ export default function Index() {
     },
     stage: {
       priceCondition: null,
-      priceConditionDetails: '',
       displacement: false,
       displacementType: null,
       screenshot: null,
