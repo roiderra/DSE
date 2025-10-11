@@ -91,30 +91,51 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
+  // Загрузка данных из локального хранилища при старте
+  useEffect(() => {
+    loadSetupFromStorage();
+  }, []);
+
+  const loadSetupFromStorage = async () => {
+    try {
+      const savedSetup = await AsyncStorage.getItem('currentTradingSetup');
+      if (savedSetup) {
+        setCurrentSetup(JSON.parse(savedSetup));
+      }
+    } catch (error) {
+      console.log('No saved setup found');
+    }
+  };
+
+  const saveSetupToStorage = async (setup: TradingSetup) => {
+    try {
+      await AsyncStorage.setItem('currentTradingSetup', JSON.stringify(setup));
+    } catch (error) {
+      console.error('Failed to save setup to storage:', error);
+    }
+  };
+
   const saveSetup = async () => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/setups`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(currentSetup),
-      });
+      // Обновляем временную метку
+      const updatedSetup = {
+        ...currentSetup,
+        updatedAt: new Date().toISOString()
+      };
       
-      if (response.ok) {
-        const savedSetup = await response.json();
-        setCurrentSetup(savedSetup);
-        
-        // Генерируем PDF после сохранения
-        Alert.alert(
-          'Setup Saved!',
-          'Would you like to generate and save a PDF report?',
-          [
-            { text: 'Not Now', style: 'cancel' },
-            { text: 'Generate PDF', onPress: generatePDF }
-          ]
-        );
-      }
+      // Сохраняем в локальное хранилище
+      await saveSetupToStorage(updatedSetup);
+      setCurrentSetup(updatedSetup);
+      
+      // Генерируем PDF
+      Alert.alert(
+        'Setup Saved!',
+        'Would you like to generate and download a PDF report?',
+        [
+          { text: 'Not Now', style: 'cancel' },
+          { text: 'Generate PDF', onPress: generatePDF }
+        ]
+      );
     } catch (error) {
       console.error('Failed to save setup:', error);
       Alert.alert('Error', 'Failed to save setup. Please try again.');
