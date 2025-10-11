@@ -961,38 +961,7 @@ Screenshots are saved locally with the setup data.`;
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <TouchableOpacity 
           style={styles.saveButton} 
-          onPress={() => {
-            console.log('🔥 Button clicked!');
-            // Простая реализация скачивания файла
-            const reportText = `FOREX TRADING SETUP REPORT
-Generated: ${new Date().toLocaleString()}
-Setup: ${currentSetup.name}
-
-DIRECTION: Weekly Bias: ${currentSetup.direction.weeklyBias || 'Not Set'} | Daily Bias: ${currentSetup.direction.dailyBias || 'Not Set'}
-STAGE: Price Condition: ${currentSetup.stage.priceCondition || 'Not Set'} | Displacement: ${currentSetup.stage.displacement}
-ENTRY: Swing Point: ${currentSetup.entry.highGradeSwingPoint} | OTE: ${currentSetup.entry.oteRetracement || 'Not Set'}`;
-
-            try {
-              const blob = new Blob([reportText], { type: 'text/plain' });
-              const url = URL.createObjectURL(blob);
-              const a = document.createElement('a');
-              a.href = url;
-              a.download = `forex-report-${Date.now()}.txt`;
-              document.body.appendChild(a);
-              a.click();
-              document.body.removeChild(a);
-              URL.revokeObjectURL(url);
-              
-              // Очищаем данные и сбрасываем
-              localStorage.clear();
-              location.reload();
-            } catch (error) {
-              console.error('Error:', error);
-              alert('Download completed! Page will reload for fresh start.');
-              localStorage.clear();
-              location.reload();
-            }
-          }}
+          onPress={handleGenerateReport}
         >
           <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
           <Text style={styles.saveButtonText}>Save & Generate Report</Text>
