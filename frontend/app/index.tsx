@@ -15,7 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import jsPDF from 'jspdf';
 
 interface TradingSetup {
   id: string;
