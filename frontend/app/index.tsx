@@ -150,6 +150,8 @@ export default function Index() {
 
   const generateReport = async () => {
     console.log('🚀 generateReport started');
+    Alert.alert('Debug', 'generateReport function called!');
+    
     try {
       const now = new Date().toLocaleString('ru-RU');
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
