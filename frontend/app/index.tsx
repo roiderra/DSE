@@ -233,11 +233,12 @@ Screenshots are saved locally with the setup data.
         URL.revokeObjectURL(url);
       }
       
+      console.log('✅ Report generated successfully');
       Alert.alert('Success', 'Trading setup report generated and saved successfully!');
       
     } catch (error) {
-      console.error('Error generating report:', error);
-      Alert.alert('Error', 'Failed to generate report. Please try again.');
+      console.error('❌ Error generating report:', error);
+      Alert.alert('Error', `Failed to generate report: ${error.message}. Please try again.`);
     }
   };
 
