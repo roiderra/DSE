@@ -149,6 +149,12 @@ export default function Index() {
   const generateReport = async () => {
     // Генерация PDF с встраиванием скриншотов в соответствующие разделы
     try {
+      // Валидация: все секции должны быть завершены
+      if (!currentSetup.direction.completed || !currentSetup.stage.completed || !currentSetup.entry.completed) {
+        Alert.alert('Требуется завершить все секции', 'Пожалуйста, завершите Direction, Stage и Entry и загрузите скриншоты для каждой секции.');
+        return;
+      }
+
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
         (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
 
