@@ -213,7 +213,11 @@ Screenshots are saved locally with the setup data.
 
       // Сохраняем отчет в хранилище
       const reportKey = `trading_report_${Date.now()}`;
-      await AsyncStorage.setItem(reportKey, reportText);
+      if (Platform.OS === 'web') {
+        localStorage.setItem(reportKey, reportText);
+      } else {
+        await AsyncStorage.setItem(reportKey, reportText);
+      }
       
       // Для веб-платформы создаем файл для скачивания
       if (Platform.OS === 'web') {
