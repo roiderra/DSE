@@ -578,28 +578,42 @@ export default function Index() {
     const isCompleted = tab === 'direction' ? currentSetup.direction.completed :
                       tab === 'stage' ? currentSetup.stage.completed :
                       currentSetup.entry.completed;
+    const isAccessible = isTabAccessible(tab);
 
     return (
       <TouchableOpacity
         key={tab}
-        style={[styles.tabButton, isActive && styles.activeTab]}
-        onPress={() => setActiveTab(tab)}
+        style={[
+          styles.tabButton, 
+          isActive && styles.activeTab,
+          !isAccessible && styles.lockedTab
+        ]}
+        onPress={() => switchTab(tab)}
+        disabled={!isAccessible && !isActive}
       >
         <View style={styles.tabContent}>
           <Ionicons 
-            name={icon as any} 
+            name={!isAccessible && !isActive ? 'lock-closed' : icon as any} 
             size={20} 
-            color={isActive ? '#00D4FF' : isCompleted ? '#4CAF50' : '#666'} 
+            color={
+              !isAccessible && !isActive ? '#444' :
+              isActive ? '#00D4FF' : 
+              isCompleted ? '#4CAF50' : '#666'
+            } 
           />
           <Text style={[
             styles.tabText, 
             isActive && styles.activeTabText,
-            isCompleted && styles.completedTabText
+            isCompleted && styles.completedTabText,
+            !isAccessible && !isActive && styles.lockedTabText
           ]}>
             {label}
           </Text>
           {isCompleted && (
             <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={styles.checkIcon} />
+          )}
+          {!isAccessible && !isActive && (
+            <Ionicons name="lock-closed" size={12} color="#444" style={styles.lockIcon} />
           )}
         </View>
       </TouchableOpacity>
