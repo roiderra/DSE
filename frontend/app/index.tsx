@@ -9,13 +9,13 @@ import {
   StatusBar,
   Alert,
   Image,
-  Dimensions
+  Dimensions,
+  Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import jsPDF from 'jspdf';
 
 interface TradingSetup {
   id: string;
