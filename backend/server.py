@@ -27,9 +27,7 @@ api_router = APIRouter(prefix="/api")
 # Direction State Models
 class DirectionState(BaseModel):
     weeklyBias: Optional[str] = None  # 'bullish', 'bearish'
-    weeklyPattern: Optional[str] = None  # 'OHLC', 'OLHC'
     dailyBias: Optional[str] = None  # 'higher', 'lower'
-    dailyAlignedWithWeekly: bool = False
     screenshot: Optional[str] = None  # base64 encoded image
     completed: bool = False
 
