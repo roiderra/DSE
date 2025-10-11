@@ -93,24 +93,20 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Очистка памяти при загрузке страницы и загрузка данных
+  // Очистка памяти при загрузке страницы
   useEffect(() => {
-    // Очищаем память при каждой перезагрузке страницы
+    // ВСЕГДА очищаем память при каждой перезагрузке страницы
     clearMemoryOnPageLoad();
-    // Затем загружаем данные (если есть)
-    loadSetupFromStorage();
+    // НЕ загружаем данные - начинаем с чистого листа
+    console.log('🎯 Starting with clean setup on page load');
   }, []);
 
   const clearMemoryOnPageLoad = () => {
     try {
       if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        // Очищаем все данные при перезагрузке страницы
-        Object.keys(localStorage).forEach(key => {
-          if (key.startsWith('trading_report_') || key === 'currentTradingSetup') {
-            localStorage.removeItem(key);
-          }
-        });
-        console.log('🧹 Memory cleared on page reload');
+        // Полностью очищаем localStorage при каждой загрузке
+        localStorage.clear();
+        console.log('🧹 All localStorage cleared on page reload');
       }
     } catch (error) {
       console.log('Memory clear failed:', error);
