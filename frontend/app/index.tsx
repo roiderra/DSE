@@ -915,16 +915,7 @@ export default function Index() {
           </TouchableOpacity>
         </View>
 
-        {currentSetup.stage.priceCondition && (
-          <View style={styles.detailsInput}>
-            <Text style={styles.inputLabel}>Details:</Text>
-            <View style={styles.textInputContainer}>
-              <Text style={styles.textInputPlaceholder}>
-                {currentSetup.stage.priceConditionDetails || 'Add specific details about the price condition...'}
-              </Text>
-            </View>
-          </View>
-        )}
+        {/* Details section removed as requested */}
       </View>
 
       <View style={styles.checklistSection}>
