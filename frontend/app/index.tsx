@@ -36,7 +36,6 @@ interface DirectionState {
 
 interface StageState {
   priceCondition: 'pd_array' | 'stops_run' | null;
-  priceConditionDetails: string;
   displacement: boolean;
   displacementType: 'mss' | 'fvg_cut' | null;
   screenshot: string | null; // base64 encoded image
