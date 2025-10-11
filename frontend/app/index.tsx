@@ -94,102 +94,49 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Агрессивная очистка всей памяти при каждом запуске
+  // Чистый старт при каждом запуске: очищаем AsyncStorage и сбрасываем state
   useEffect(() => {
-    console.log('🧹 App started - AGGRESSIVELY clearing ALL memory');
-    
-    // Функция для полной очистки памяти
-    const clearAllMemory = () => {
+    const initFresh = async () => {
       try {
-        // Очищаем localStorage
-        if (typeof localStorage !== 'undefined') {
-          localStorage.clear();
-          console.log('✅ localStorage cleared');
-        }
-        
-        // Очищаем sessionStorage  
-        if (typeof sessionStorage !== 'undefined') {
-          sessionStorage.clear();
-          console.log('✅ sessionStorage cleared');
-        }
-        
-        // Очищаем IndexedDB (если используется)
-        if (typeof indexedDB !== 'undefined') {
-          try {
-            indexedDB.deleteDatabase('forex-app');
-            console.log('✅ IndexedDB cleared');
-          } catch (e) {
-            console.log('IndexedDB clear not needed');
-          }
-        }
-        
-      } catch (error) {
-        console.log('Memory clear error:', error);
+        await AsyncStorage.clear();
+      } catch (e) {
+        console.log('AsyncStorage clear error', e);
       }
-    };
-    
-    // Очищаем память при загрузке
-    clearAllMemory();
-    
-    // Принудительно сбрасываем состояние к начальному
-    const freshSetup: TradingSetup = {
-      id: '',
-      name: `Setup ${new Date().toLocaleDateString()}`,
-      direction: {
-        weeklyBias: null,
-        dailyBias: null,
-        screenshot: null,
-        completed: false
-      },
-      stage: {
-        priceCondition: null,
-        displacement: false,
-        displacementType: null,
-        screenshot: null,
-        completed: false
-      },
-      entry: {
-        highGradeSwingPoint: false,
-        swingPointType: null,
-        oteLevel: false,
-        oteRetracement: null,
-        stopLossLevel: null,
-        takeProfitLevel: null,
-        riskReward: null,
-        screenshot: null,
-        completed: false
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    setCurrentSetup(freshSetup);
-    setActiveTab('direction');
-    
-    // Добавляем обработчик для перезагрузки/закрытия страницы
-    const handleBeforeUnload = () => {
-      clearAllMemory();
-    };
-    
-    if (typeof window !== 'undefined') {
-      window.addEventListener('beforeunload', handleBeforeUnload);
-      window.addEventListener('unload', handleBeforeUnload);
-      
-      // Очищаем память каждые 5 секунд для проверки
-      const clearInterval = setInterval(() => {
-        console.log('🔄 Periodic memory check and clear');
-        clearAllMemory();
-      }, 5000);
-      
-      // Cleanup
-      return () => {
-        window.removeEventListener('beforeunload', handleBeforeUnload);
-        window.removeEventListener('unload', handleBeforeUnload);
-        clearInterval(clearInterval);
+      const fresh: TradingSetup = {
+        id: '',
+        name: `Setup ${new Date().toLocaleDateString()}`,
+        direction: {
+          weeklyBias: null,
+          dailyBias: null,
+          screenshot: null,
+          completed: false,
+        },
+        stage: {
+          priceCondition: null,
+          displacement: false,
+          displacementType: null,
+          screenshot: null,
+          completed: false,
+        },
+        entry: {
+          highGradeSwingPoint: false,
+          swingPointType: null,
+          oteLevel: false,
+          oteRetracement: null,
+          stopLossLevel: null,
+          takeProfitLevel: null,
+          riskReward: null,
+          screenshot: null,
+          completed: false,
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
-    }
-    
-    console.log('🎯 FORCED fresh state set - completely clean start');
+      setCurrentSetup(fresh);
+      setActiveTab('direction');
+      console.log('🎯 Fresh state set - clean start');
+    };
+    initFresh();
   }, []);
 
   // УДАЛЕНЫ функции автоматического сохранения чтобы избежать перезаписи
