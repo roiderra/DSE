@@ -474,6 +474,43 @@ export default function Index() {
            entry.riskReward !== null;
   };
 
+  // Проверяем доступность вкладок
+  const isTabAccessible = (tab: TabType): boolean => {
+    switch (tab) {
+      case 'direction':
+        return true; // Direction всегда доступен
+      case 'stage':
+        return currentSetup.direction.completed; // Stage доступен только если Direction завершен
+      case 'entry':
+        return currentSetup.direction.completed && currentSetup.stage.completed; // Entry доступен только если Direction и Stage завершены
+      default:
+        return false;
+    }
+  };
+
+  // Обновленная функция переключения вкладок с проверкой доступности
+  const switchTab = (tab: TabType) => {
+    if (!isTabAccessible(tab)) {
+      const requiredSections = [];
+      if (tab === 'stage' && !currentSetup.direction.completed) {
+        requiredSections.push('Direction');
+      }
+      if (tab === 'entry') {
+        if (!currentSetup.direction.completed) requiredSections.push('Direction');
+        if (!currentSetup.stage.completed) requiredSections.push('Stage');
+      }
+      
+      Alert.alert(
+        'Section Locked',
+        `Please complete ${requiredSections.join(' and ')} section${requiredSections.length > 1 ? 's' : ''} first.`,
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+    
+    setActiveTab(tab);
+  };
+
   const pickImage = async (section: 'direction' | 'stage' | 'entry') => {
     try {
       // Request permissions
