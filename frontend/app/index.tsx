@@ -1510,6 +1510,19 @@ const styles = StyleSheet.create({
     color: '#00D4FF',
   },
   
+  // Стили для заблокированных вкладок
+  lockedTab: {
+    opacity: 0.5,
+  },
+  lockedTabText: {
+    color: '#444',
+  },
+  lockIcon: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+  },
+  
   // Image Upload Styles
   imageUploadSection: {
     marginVertical: 20,
