@@ -1051,8 +1051,8 @@ export default function Index() {
         <Text style={styles.headerTitle}>Forex Trading Plan</Text>
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <TouchableOpacity style={styles.saveButton} onPress={saveSetup}>
-          <Ionicons name="save-outline" size={20} color="#00D4FF" />
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
+          <Text style={styles.saveButtonText}>Save & Generate PDF</Text>
         </TouchableOpacity>
       </View>
 
