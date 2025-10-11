@@ -153,6 +153,7 @@ export default function Index() {
   };
 
   const generateReport = async () => {
+    console.log('🚀 generateReport started');
     try {
       const now = new Date().toLocaleString('ru-RU');
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
