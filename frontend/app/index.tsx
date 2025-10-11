@@ -271,16 +271,10 @@ export default function Index() {
   };
 
   // Функция для очистки всех данных и сброса к начальному состоянию
-  const clearAllData = () => {
+  const clearAllData = async () => {
     try {
       console.log('🧹 Clearing all data...');
-      
-      // Очищаем localStorage/AsyncStorage
-      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        localStorage.clear();
-      }
-      
-      // Сбрасываем состояние к начальному
+      await AsyncStorage.clear();
       const freshSetup: TradingSetup = {
         id: '',
         name: `Setup ${new Date().toLocaleDateString()}`,
@@ -288,14 +282,14 @@ export default function Index() {
           weeklyBias: null,
           dailyBias: null,
           screenshot: null,
-          completed: false
+          completed: false,
         },
         stage: {
           priceCondition: null,
           displacement: false,
           displacementType: null,
           screenshot: null,
-          completed: false
+          completed: false,
         },
         entry: {
           highGradeSwingPoint: false,
@@ -306,18 +300,20 @@ export default function Index() {
           takeProfitLevel: null,
           riskReward: null,
           screenshot: null,
-          completed: false
+          completed: false,
         },
         createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       };
-      
       setCurrentSetup(freshSetup);
-      setActiveTab('direction'); // Возвращаемся на первую вкладку
-      
+      setActiveTab('direction');
+      if (Platform.OS === 'web') {
+        // мгновенная перезагрузка страницы, чтобы убедиться в чистом состоянии
+        setTimeout(() => {
+          window.location.reload();
+        }, 150);
+      }
       console.log('✅ All data cleared, starting fresh');
-      Alert.alert('Success', 'Report generated! Starting with a clean setup.');
-      
     } catch (error) {
       console.error('Error clearing data:', error);
     }
