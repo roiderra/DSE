@@ -1297,25 +1297,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   
-  detailsInput: {
-    marginTop: 12,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#fff',
-    marginBottom: 6,
-  },
-  textInputContainer: {
-    backgroundColor: '#1a1a1a',
-    borderRadius: 6,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#333',
-  },
-  textInputPlaceholder: {
-    color: '#888',
-    fontSize: 14,
-  },
+  // detailsInput styles removed as section was removed
   
   displacementTypeSection: {
     marginTop: 12,
