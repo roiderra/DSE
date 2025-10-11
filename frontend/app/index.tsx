@@ -126,6 +126,7 @@ export default function Index() {
   };
 
   const saveSetup = async () => {
+    console.log('🚀 saveSetup started');
     try {
       // Обновляем временную метку
       const updatedSetup = {
@@ -136,18 +137,13 @@ export default function Index() {
       // Сохраняем в локальное хранилище
       await saveSetupToStorage(updatedSetup);
       setCurrentSetup(updatedSetup);
+      console.log('✅ Setup saved to storage');
       
-      // Генерируем PDF
-      Alert.alert(
-        'Setup Saved!',
-        'Would you like to generate and download a report?',
-        [
-          { text: 'Not Now', style: 'cancel' },
-          { text: 'Generate Report', onPress: generateReport }
-        ]
-      );
+      // Генерируем отчет напрямую
+      await generateReport();
+      
     } catch (error) {
-      console.error('Failed to save setup:', error);
+      console.error('❌ Failed to save setup:', error);
       Alert.alert('Error', 'Failed to save setup. Please try again.');
     }
   };
