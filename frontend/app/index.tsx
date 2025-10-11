@@ -98,27 +98,40 @@ export default function Index() {
   useEffect(() => {
     console.log('🧹 App started - AGGRESSIVELY clearing ALL memory');
     
-    // 1. Очищаем localStorage полностью
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.clear();
-        console.log('✅ localStorage cleared');
+    // Функция для полной очистки памяти
+    const clearAllMemory = () => {
+      try {
+        // Очищаем localStorage
+        if (typeof localStorage !== 'undefined') {
+          localStorage.clear();
+          console.log('✅ localStorage cleared');
+        }
+        
+        // Очищаем sessionStorage  
+        if (typeof sessionStorage !== 'undefined') {
+          sessionStorage.clear();
+          console.log('✅ sessionStorage cleared');
+        }
+        
+        // Очищаем IndexedDB (если используется)
+        if (typeof indexedDB !== 'undefined') {
+          try {
+            indexedDB.deleteDatabase('forex-app');
+            console.log('✅ IndexedDB cleared');
+          } catch (e) {
+            console.log('IndexedDB clear not needed');
+          }
+        }
+        
+      } catch (error) {
+        console.log('Memory clear error:', error);
       }
-    } catch (error) {
-      console.log('localStorage clear failed:', error);
-    }
+    };
     
-    // 2. Очищаем sessionStorage
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.clear();
-        console.log('✅ sessionStorage cleared');
-      }
-    } catch (error) {
-      console.log('sessionStorage clear failed:', error);
-    }
+    // Очищаем память при загрузке
+    clearAllMemory();
     
-    // 3. Принудительно сбрасываем состояние к начальному
+    // Принудительно сбрасываем состояние к начальному
     const freshSetup: TradingSetup = {
       id: '',
       name: `Setup ${new Date().toLocaleDateString()}`,
@@ -152,6 +165,29 @@ export default function Index() {
     
     setCurrentSetup(freshSetup);
     setActiveTab('direction');
+    
+    // Добавляем обработчик для перезагрузки/закрытия страницы
+    const handleBeforeUnload = () => {
+      clearAllMemory();
+    };
+    
+    if (typeof window !== 'undefined') {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      window.addEventListener('unload', handleBeforeUnload);
+      
+      // Очищаем память каждые 5 секунд для проверки
+      const clearInterval = setInterval(() => {
+        console.log('🔄 Periodic memory check and clear');
+        clearAllMemory();
+      }, 5000);
+      
+      // Cleanup
+      return () => {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+        window.removeEventListener('unload', handleBeforeUnload);
+        clearInterval(clearInterval);
+      };
+    }
     
     console.log('🎯 FORCED fresh state set - completely clean start');
   }, []);
