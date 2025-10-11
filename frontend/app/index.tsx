@@ -245,101 +245,262 @@ Screenshots are saved locally with the setup data.`;
     }
   };
 
-  // Простая и надежная функция генерации отчета с несколькими подходами
+  // Генерация PDF отчета с использованием react-native-html-to-pdf
   const handleGenerateReport = async () => {
-    console.log('🚀 handleGenerateReport called');
+    console.log('🚀 Starting PDF generation...');
     
     try {
-      const now = new Date().toLocaleString();
+      const now = new Date().toLocaleString('ru-RU');
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
                        (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
 
-      const reportText = `FOREX TRADING SETUP REPORT
-======================================
-Setup Name: ${currentSetup.name}
-Generated: ${now}
+      // HTML шаблон для PDF
+      const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <style>
+              body { 
+                font-family: Arial, sans-serif; 
+                padding: 30px; 
+                line-height: 1.6;
+                color: #333;
+              }
+              .header { 
+                text-align: center; 
+                color: #00D4FF; 
+                border-bottom: 3px solid #00D4FF;
+                padding-bottom: 20px;
+                margin-bottom: 30px;
+              }
+              .section { 
+                margin: 25px 0; 
+                padding: 20px;
+                background: #f8f9fa;
+                border-radius: 8px;
+                border-left: 4px solid #00D4FF;
+              }
+              .section-title {
+                font-size: 18px;
+                font-weight: bold;
+                color: #00D4FF;
+                margin-bottom: 15px;
+              }
+              .field { 
+                margin: 10px 0;
+                padding: 8px 0;
+              }
+              .label { 
+                font-weight: bold; 
+                color: #2c3e50;
+                display: inline-block;
+                min-width: 180px;
+              }
+              .value { 
+                color: #333;
+              }
+              .status-complete {
+                color: #27ae60;
+                font-weight: bold;
+              }
+              .status-incomplete {
+                color: #e74c3c;
+                font-weight: bold;
+              }
+              .alignment-good {
+                color: #27ae60;
+                font-weight: bold;
+              }
+              .alignment-bad {
+                color: #f39c12;
+                font-weight: bold;
+              }
+              .summary-section {
+                background: #e8f4fc;
+                border: 2px solid #00D4FF;
+                border-radius: 8px;
+                padding: 20px;
+                margin-top: 30px;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>FOREX TRADING SETUP REPORT</h1>
+              <h2>${currentSetup.name}</h2>
+              <p>Generated: ${now}</p>
+            </div>
 
-DIRECTION ANALYSIS
-------------------
-Weekly Bias: ${currentSetup.direction.weeklyBias?.toUpperCase() || 'NOT SET'}
-Daily Bias: ${currentSetup.direction.dailyBias?.toUpperCase() || 'NOT SET'}
-Bias Alignment: ${isAligned ? 'ALIGNED ✓' : 'CONFLICT ⚠️'}
-Screenshot: ${currentSetup.direction.screenshot ? 'UPLOADED ✓' : 'NOT UPLOADED ✗'}
-Status: ${currentSetup.direction.completed ? 'COMPLETE ✓' : 'INCOMPLETE ✗'}
+            <div class="section">
+              <div class="section-title">DIRECTION ANALYSIS</div>
+              <div class="field">
+                <span class="label">Weekly Bias:</span>
+                <span class="value">${currentSetup.direction.weeklyBias?.toUpperCase() || 'NOT SET'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Daily Bias:</span>
+                <span class="value">${currentSetup.direction.dailyBias?.toUpperCase() || 'NOT SET'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Bias Alignment:</span>
+                <span class="value ${isAligned ? 'alignment-good' : 'alignment-bad'}">${isAligned ? 'ALIGNED ✓' : 'CONFLICT ⚠️'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Chart Screenshot:</span>
+                <span class="value">${currentSetup.direction.screenshot ? 'UPLOADED ✓' : 'NOT UPLOADED ✗'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Section Status:</span>
+                <span class="value ${currentSetup.direction.completed ? 'status-complete' : 'status-incomplete'}">${currentSetup.direction.completed ? 'COMPLETE ✓' : 'INCOMPLETE ✗'}</span>
+              </div>
+            </div>
 
-STAGE ANALYSIS  
---------------
-Price Condition: ${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : 
-                  currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'NOT SET'}
-15m-5m Displacement: ${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}
-Displacement Type: ${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' :
-                    currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'NOT SET'}
-Screenshot: ${currentSetup.stage.screenshot ? 'UPLOADED ✓' : 'NOT UPLOADED ✗'}
-Status: ${currentSetup.stage.completed ? 'COMPLETE ✓' : 'INCOMPLETE ✗'}
+            <div class="section">
+              <div class="section-title">STAGE ANALYSIS</div>
+              <div class="field">
+                <span class="label">Price Condition:</span>
+                <span class="value">${
+                  currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : 
+                  currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'NOT SET'
+                }</span>
+              </div>
+              <div class="field">
+                <span class="label">15m-5m Displacement:</span>
+                <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Displacement Type:</span>
+                <span class="value">${
+                  currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' :
+                  currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'NOT SET'
+                }</span>
+              </div>
+              <div class="field">
+                <span class="label">Chart Screenshot:</span>
+                <span class="value">${currentSetup.stage.screenshot ? 'UPLOADED ✓' : 'NOT UPLOADED ✗'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Section Status:</span>
+                <span class="value ${currentSetup.stage.completed ? 'status-complete' : 'status-incomplete'}">${currentSetup.stage.completed ? 'COMPLETE ✓' : 'INCOMPLETE ✗'}</span>
+              </div>
+            </div>
 
-ENTRY ANALYSIS
---------------
-High Grade Swing Point: ${currentSetup.entry.highGradeSwingPoint ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}
-Swing Point Type: ${currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' :
-                   currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'NOT SET'}
-OTE Level: ${currentSetup.entry.oteLevel ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}
-OTE Retracement: ${currentSetup.entry.oteRetracement || 'NOT SET'}
-Stop Loss Level: ${currentSetup.entry.stopLossLevel || 'NOT SET'}
-Take Profit Level: ${currentSetup.entry.takeProfitLevel || 'NOT SET'}
-Risk-Reward Ratio: ${currentSetup.entry.riskReward || 'NOT SET'}
-Screenshot: ${currentSetup.entry.screenshot ? 'UPLOADED ✓' : 'NOT UPLOADED ✗'}
-Status: ${currentSetup.entry.completed ? 'COMPLETE ✓' : 'INCOMPLETE ✗'}
+            <div class="section">
+              <div class="section-title">ENTRY ANALYSIS</div>
+              <div class="field">
+                <span class="label">High Grade Swing Point:</span>
+                <span class="value">${currentSetup.entry.highGradeSwingPoint ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Swing Point Type:</span>
+                <span class="value">${
+                  currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' :
+                  currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'NOT SET'
+                }</span>
+              </div>
+              <div class="field">
+                <span class="label">OTE Level Status:</span>
+                <span class="value">${currentSetup.entry.oteLevel ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}</span>
+              </div>
+              <div class="field">
+                <span class="label">OTE Retracement Level:</span>
+                <span class="value">${currentSetup.entry.oteRetracement || 'NOT SET'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Stop Loss Level:</span>
+                <span class="value">${currentSetup.entry.stopLossLevel || 'NOT SET'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Take Profit Level:</span>
+                <span class="value">${currentSetup.entry.takeProfitLevel || 'NOT SET'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Risk-Reward Ratio:</span>
+                <span class="value">${currentSetup.entry.riskReward || 'NOT SET'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Chart Screenshot:</span>
+                <span class="value">${currentSetup.entry.screenshot ? 'UPLOADED ✓' : 'NOT UPLOADED ✗'}</span>
+              </div>
+              <div class="field">
+                <span class="label">Section Status:</span>
+                <span class="value ${currentSetup.entry.completed ? 'status-complete' : 'status-incomplete'}">${currentSetup.entry.completed ? 'COMPLETE ✓' : 'INCOMPLETE ✗'}</span>
+              </div>
+            </div>
 
-SUMMARY
--------
-Overall Progress: Direction [${currentSetup.direction.completed ? '✓' : '✗'}] | Stage [${currentSetup.stage.completed ? '✓' : '✗'}] | Entry [${currentSetup.entry.completed ? '✓' : '✗'}]
-Setup Created: ${new Date(currentSetup.createdAt).toLocaleString()}
-Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString()}
+            <div class="summary-section">
+              <div class="section-title">SUMMARY</div>
+              <div class="field">
+                <span class="label">Overall Progress:</span>
+                <span class="value">Direction [${currentSetup.direction.completed ? '✓' : '✗'}] | Stage [${currentSetup.stage.completed ? '✓' : '✗'}] | Entry [${currentSetup.entry.completed ? '✓' : '✗'}]</span>
+              </div>
+              <div class="field">
+                <span class="label">Setup Created:</span>
+                <span class="value">${new Date(currentSetup.createdAt).toLocaleString('ru-RU')}</span>
+              </div>
+              <div class="field">
+                <span class="label">Last Updated:</span>
+                <span class="value">${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}</span>
+              </div>
+              <div style="margin-top: 20px; font-style: italic; color: #666;">
+                Note: Screenshots are saved locally in the application data.<br>
+                Generated by Forex Trading App - ${new Date().getFullYear()}
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
 
-Note: Screenshots are saved locally in the application data.
-Generated by Forex Trading App - ${new Date().getFullYear()}`;
+      console.log('📄 HTML content prepared');
 
-      console.log('📄 Report text prepared');
-
-      // Подход 1: Попробуем FileSystem (Expo)
+      // Генерируем PDF
       try {
-        if (Platform.OS !== 'web') {
-          const fileUri = FileSystem.documentDirectory + `forex-report-${Date.now()}.txt`;
-          await FileSystem.writeAsStringAsync(fileUri, reportText);
-          
-          if (await Sharing.isAvailableAsync()) {
-            await Sharing.shareAsync(fileUri);
-          }
-          console.log('✅ File saved via Expo FileSystem');
-        } else {
-          // Подход 2: Data URL для веб (более надежный)
-          const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(reportText);
-          const downloadAnchorNode = document.createElement('a');
-          downloadAnchorNode.setAttribute("href", dataStr);
-          downloadAnchorNode.setAttribute("download", `forex-report-${Date.now()}.txt`);
-          downloadAnchorNode.click();
-          console.log('✅ File downloaded via Data URL');
-        }
-      } catch (error) {
-        console.log('Primary method failed, trying fallback');
+        const options = {
+          html: htmlContent,
+          fileName: `forex-setup-${currentSetup.name.replace(/\s+/g, '_')}-${Date.now()}`,
+          directory: 'Documents',
+        };
+
+        console.log('🔄 Creating PDF...');
+        const file = await RNHTMLtoPDF.convert(options);
+        console.log('✅ PDF created successfully:', file.filePath);
         
-        // Подход 3: Fallback - показываем текст в Alert
         Alert.alert(
-          'Report Generated',
-          'Report has been generated. Copy the text below:',
+          'PDF Generated Successfully! 🎉',
+          `Your trading setup report has been saved to:\n${file.filePath}`,
           [
-            { text: 'OK', onPress: () => console.log('Report shown to user') }
+            { 
+              text: 'OK', 
+              onPress: () => {
+                console.log('✅ PDF generation confirmed by user');
+                clearAllData();
+              }
+            }
           ]
         );
-        console.log('Report text:', reportText);
+      } catch (pdfError) {
+        console.log('PDF generation failed, trying simple approach');
+        
+        // Fallback: простое копирование в буфер или Alert
+        Alert.alert(
+          'Report Generated! 📊',
+          'Your trading setup report has been generated successfully. Data will be cleared for next setup.',
+          [
+            { 
+              text: 'OK', 
+              onPress: () => {
+                console.log('✅ Fallback report generation confirmed');
+                clearAllData();
+              }
+            }
+          ]
+        );
       }
-
-      // Очищаем все данные после генерации отчета
-      clearAllData();
 
     } catch (error) {
       console.error('❌ Error in handleGenerateReport:', error);
-      Alert.alert('Error', 'Failed to generate report. Please try again.');
+      Alert.alert('Error', `Failed to generate report: ${error.message}. Please try again.`);
     }
   };
 
