@@ -453,13 +453,15 @@ export default function Index() {
 
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
-           direction.dailyBias !== null;
+           direction.dailyBias !== null &&
+           direction.screenshot !== null; // Скриншот обязателен
   };
 
   const checkStageCompleted = (stage: StageState): boolean => {
     return stage.priceCondition !== null && 
            stage.displacement && 
-           stage.displacementType !== null;
+           stage.displacementType !== null &&
+           stage.screenshot !== null; // Скриншот обязателен
   };
 
   const checkEntryCompleted = (entry: EntryState): boolean => {
@@ -469,7 +471,8 @@ export default function Index() {
            entry.oteRetracement !== null && 
            entry.stopLossLevel !== null && 
            entry.takeProfitLevel !== null && 
-           entry.riskReward !== null;
+           entry.riskReward !== null &&
+           entry.screenshot !== null; // Скриншот обязателен
   };
 
   // Проверяем доступность вкладок
