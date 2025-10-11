@@ -890,8 +890,8 @@ Screenshots are saved locally with the setup data.
         <TouchableOpacity 
           style={styles.saveButton} 
           onPress={() => {
-            console.log('🔥 Button pressed!');
-            saveSetup();
+            Alert.alert('Button Works!', 'Save & Generate Report button was pressed');
+            generateReport();
           }}
         >
           <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
