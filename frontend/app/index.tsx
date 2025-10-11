@@ -149,17 +149,13 @@ export default function Index() {
   };
 
   const generateReport = async () => {
-    console.log('🚀 generateReport started');
-    Alert.alert('Debug', 'generateReport function called!');
-    
     try {
       const now = new Date().toLocaleString('ru-RU');
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
                        (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
 
       // Создаем текстовый отчет
-      const reportText = `
-FOREX TRADING SETUP REPORT
+      const reportText = `FOREX TRADING SETUP REPORT
 ==========================
 Setup Name: ${currentSetup.name}
 Generated: ${now}
@@ -174,25 +170,16 @@ Status: ${currentSetup.direction.completed ? 'Complete ✓' : 'Incomplete ✗'}
 
 STAGE
 -----
-Price Condition: ${
-  currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' :
-  currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'Not Set'
-}
+Price Condition: ${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'Not Set'}
 15m-5m Displacement: ${currentSetup.stage.displacement ? 'Occurred ✓' : 'Not Occurred ✗'}
-Displacement Type: ${
-  currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' :
-  currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'Not Set'
-}
+Displacement Type: ${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'Not Set'}
 Screenshot: ${currentSetup.stage.screenshot ? 'Uploaded ✓' : 'Not Uploaded ✗'}
 Status: ${currentSetup.stage.completed ? 'Complete ✓' : 'Incomplete ✗'}
 
 ENTRY
 -----
 High Grade Swing Point: ${currentSetup.entry.highGradeSwingPoint ? 'Identified ✓' : 'Not Identified ✗'}
-Swing Point Type: ${
-  currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' :
-  currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'Not Set'
-}
+Swing Point Type: ${currentSetup.entry.swingPointType === 'liquidity_sweep' ? 'Swept Liquidity' : currentSetup.entry.swingPointType === 'fvg_rebalance' ? 'Rebalanced FVG' : 'Not Set'}
 OTE Level: ${currentSetup.entry.oteLevel ? 'Identified ✓' : 'Not Identified ✗'}
 OTE Retracement: ${currentSetup.entry.oteRetracement || 'Not Set'}
 Stop Loss Level: ${currentSetup.entry.stopLossLevel || 'Not Set'}
@@ -207,36 +194,34 @@ Overall Progress: Direction: ${currentSetup.direction.completed ? '✓' : '✗'}
 Created: ${new Date(currentSetup.createdAt).toLocaleString('ru-RU')}
 Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}
 
-Screenshots are saved locally with the setup data.
-      `.trim();
+Screenshots are saved locally with the setup data.`;
 
-      // Сохраняем отчет в хранилище
-      const reportKey = `trading_report_${Date.now()}`;
-      if (Platform.OS === 'web') {
-        localStorage.setItem(reportKey, reportText);
-      } else {
-        await AsyncStorage.setItem(reportKey, reportText);
-      }
-      
-      // Для веб-платформы создаем файл для скачивания
-      if (Platform.OS === 'web') {
+      // Для веб-платформы создаем файл для скачивания напрямую
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
         const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
         a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.txt`;
+        a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }
       
-      console.log('✅ Report generated successfully');
-      Alert.alert('Success', 'Trading setup report generated and saved successfully!');
+      // Сохраняем в localStorage для веб или AsyncStorage для мобильного
+      const reportKey = `trading_report_${Date.now()}`;
+      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
+        localStorage.setItem(reportKey, reportText);
+      } else {
+        await AsyncStorage.setItem(reportKey, reportText);
+      }
+      
+      console.log('Report generated and download initiated');
       
     } catch (error) {
-      console.error('❌ Error generating report:', error);
-      Alert.alert('Error', `Failed to generate report: ${error.message}. Please try again.`);
+      console.error('Error generating report:', error);
     }
   };
 
