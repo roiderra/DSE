@@ -1122,6 +1122,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#2E7D32',
     borderColor: '#2E7D32',
   },
+  perfectRR: {
+    backgroundColor: '#1B5E20',
+    borderColor: '#1B5E20',
+  },
   rrText: {
     color: '#888',
     fontSize: 14,
