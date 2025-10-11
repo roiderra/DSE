@@ -150,6 +150,8 @@ export default function Index() {
 
   const generateReport = async () => {
     try {
+      console.log('🚀 generateReport function called');
+      
       const now = new Date().toLocaleString('ru-RU');
       const isAligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
                        (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
@@ -196,8 +198,10 @@ Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}
 
 Screenshots are saved locally with the setup data.`;
 
-      // Для веб-платформы создаем файл для скачивания напрямую
-      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      console.log('📄 Report text created');
+
+      // Создаем и скачиваем файл (работает в веб-браузере)
+      try {
         const blob = new Blob([reportText], { type: 'text/plain;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -208,20 +212,74 @@ Screenshots are saved locally with the setup data.`;
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+        console.log('💾 File download initiated');
+      } catch (downloadError) {
+        console.error('Download failed:', downloadError);
       }
       
-      // Сохраняем в localStorage для веб или AsyncStorage для мобильного
-      const reportKey = `trading_report_${Date.now()}`;
-      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        localStorage.setItem(reportKey, reportText);
-      } else {
-        await AsyncStorage.setItem(reportKey, reportText);
-      }
-      
-      console.log('Report generated and download initiated');
+      // Очищаем всю память и начинаем с чистого листа
+      clearAllData();
       
     } catch (error) {
-      console.error('Error generating report:', error);
+      console.error('❌ Error in generateReport:', error);
+      Alert.alert('Error', `Failed to generate report: ${error.message}`);
+    }
+  };
+
+  // Функция для очистки всех данных и сброса к начальному состоянию
+  const clearAllData = () => {
+    try {
+      // Очищаем localStorage
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('currentTradingSetup');
+        // Также очищаем старые отчеты
+        Object.keys(localStorage).forEach(key => {
+          if (key.startsWith('trading_report_')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      
+      // Сбрасываем состояние к начальному
+      const freshSetup: TradingSetup = {
+        id: '',
+        name: `Setup ${new Date().toLocaleDateString()}`,
+        direction: {
+          weeklyBias: null,
+          dailyBias: null,
+          screenshot: null,
+          completed: false
+        },
+        stage: {
+          priceCondition: null,
+          displacement: false,
+          displacementType: null,
+          screenshot: null,
+          completed: false
+        },
+        entry: {
+          highGradeSwingPoint: false,
+          swingPointType: null,
+          oteLevel: false,
+          oteRetracement: null,
+          stopLossLevel: null,
+          takeProfitLevel: null,
+          riskReward: null,
+          screenshot: null,
+          completed: false
+        },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      setCurrentSetup(freshSetup);
+      setActiveTab('direction'); // Возвращаемся на первую вкладку
+      
+      console.log('🔄 All data cleared, starting fresh');
+      Alert.alert('Success', 'Report generated and downloaded! Starting with a clean setup.');
+      
+    } catch (error) {
+      console.error('Error clearing data:', error);
     }
   };
 
