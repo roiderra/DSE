@@ -377,7 +377,7 @@ Screenshots are saved locally with the setup data.`;
     }
   };
 
-  // Обновленная функция переключения вкладок с проверкой доступности
+  // Обновленная функция переключения вкладок с проверкой доступности и автоскроллом
   const switchTab = (tab: TabType) => {
     if (!isTabAccessible(tab)) {
       const requiredSections = [];
@@ -398,6 +398,13 @@ Screenshots are saved locally with the setup data.`;
     }
     
     setActiveTab(tab);
+    
+    // Автоматический скролл вверх при переключении вкладок
+    setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }, 100);
   };
 
   const pickImage = async (section: 'direction' | 'stage' | 'entry') => {
