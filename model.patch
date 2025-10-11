@@ -1,61 +1,66 @@
-diff --git a/frontend/app/index.tsx b/frontend/app/index.tsx
-index 03916cf..3ddc479 100644
---- a/frontend/app/index.tsx
-+++ b/frontend/app/index.tsx
-@@ -129,10 +129,10 @@ export default function Index() {
-       // Генерируем PDF
-       Alert.alert(
-         'Setup Saved!',
--        'Would you like to generate and download a PDF report?',
-+        'Would you like to generate and download a report?',
-         [
-           { text: 'Not Now', style: 'cancel' },
--          { text: 'Generate PDF', onPress: generatePDF }
-+          { text: 'Generate Report', onPress: generateReport }
-         ]
-       );
-     } catch (error) {
-@@ -874,7 +874,7 @@ Screenshots are saved locally with the setup data.
-         <Text style={styles.setupName}>{currentSetup.name}</Text>
-         <TouchableOpacity style={styles.saveButton} onPress={saveSetup}>
-           <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
--          <Text style={styles.saveButtonText}>Save & Generate PDF</Text>
-+          <Text style={styles.saveButtonText}>Save & Generate Report</Text>
-         </TouchableOpacity>
-       </View>
- 
 diff --git a/model.patch b/model.patch
-index 1d92254..e69de29 100644
+index 70fd679..e69de29 100644
 --- a/model.patch
 +++ b/model.patch
-@@ -1,30 +0,0 @@
--diff --git a/test_result.md b/test_result.md
--index c380394..09f0fbd 100644
----- a/test_result.md
--+++ b/test_result.md
--@@ -111,11 +111,14 @@ backend:
--     file: "/app/backend/server.py"
--     stuck_count: 0
--     priority: "high"
---    needs_retesting: true
--+    needs_retesting: false
--     status_history:
--       - working: true
--         agent: "main"
--         comment: "Implemented complete CRUD API for trading setups with Direction, Stage, Entry models"
--+      - working: true
--+        agent: "testing"
--+        comment: "✅ All core CRUD operations working correctly: POST /api/setups (create), GET /api/setups (list), GET /api/setups/{id} (get specific), PUT /api/setups/{id} (update), DELETE /api/setups/{id} (delete), GET /api/setups/stats/summary (stats). Data persistence verified with MongoDB. Minor: Error handling for non-existent IDs returns 500 instead of 404, but core functionality is solid."
+@@ -1,61 +0,0 @@
+-diff --git a/frontend/app/index.tsx b/frontend/app/index.tsx
+-index 03916cf..3ddc479 100644
+---- a/frontend/app/index.tsx
+-+++ b/frontend/app/index.tsx
+-@@ -129,10 +129,10 @@ export default function Index() {
+-       // Генерируем PDF
+-       Alert.alert(
+-         'Setup Saved!',
+--        'Would you like to generate and download a PDF report?',
+-+        'Would you like to generate and download a report?',
+-         [
+-           { text: 'Not Now', style: 'cancel' },
+--          { text: 'Generate PDF', onPress: generatePDF }
+-+          { text: 'Generate Report', onPress: generateReport }
+-         ]
+-       );
+-     } catch (error) {
+-@@ -874,7 +874,7 @@ Screenshots are saved locally with the setup data.
+-         <Text style={styles.setupName}>{currentSetup.name}</Text>
+-         <TouchableOpacity style={styles.saveButton} onPress={saveSetup}>
+-           <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
+--          <Text style={styles.saveButtonText}>Save & Generate PDF</Text>
+-+          <Text style={styles.saveButtonText}>Save & Generate Report</Text>
+-         </TouchableOpacity>
+-       </View>
 - 
-- frontend:
--   - task: "Trading Checklist Mobile App"
--@@ -146,4 +149,6 @@ test_plan:
-- 
-- agent_communication:
--   - agent: "main"
---    message: "Implemented forex trading checklist app with Direction/Stage/Entry sections and backend API. Ready for backend testing to verify all CRUD operations work correctly."
--\ No newline at end of file
--+    message: "Implemented forex trading checklist app with Direction/Stage/Entry sections and backend API. Ready for backend testing to verify all CRUD operations work correctly."
--+  - agent: "testing"
--+    message: "✅ Backend API testing completed successfully! All core CRUD operations for trading setups are working correctly. Created comprehensive test suite in /app/backend_test.py. All endpoints tested: POST /api/setups (create), GET /api/setups (list), GET /api/setups/{id} (get), PUT /api/setups/{id} (update), DELETE /api/setups/{id} (delete), GET /api/setups/stats/summary (stats). Data persistence with MongoDB verified. Only minor issue: error handling for non-existent IDs returns 500 instead of 404, but this doesn't affect core functionality."
--\ No newline at end of file
+-diff --git a/model.patch b/model.patch
+-index 1d92254..e69de29 100644
+---- a/model.patch
+-+++ b/model.patch
+-@@ -1,30 +0,0 @@
+--diff --git a/test_result.md b/test_result.md
+--index c380394..09f0fbd 100644
+----- a/test_result.md
+--+++ b/test_result.md
+--@@ -111,11 +111,14 @@ backend:
+--     file: "/app/backend/server.py"
+--     stuck_count: 0
+--     priority: "high"
+---    needs_retesting: true
+--+    needs_retesting: false
+--     status_history:
+--       - working: true
+--         agent: "main"
+--         comment: "Implemented complete CRUD API for trading setups with Direction, Stage, Entry models"
+--+      - working: true
+--+        agent: "testing"
+--+        comment: "✅ All core CRUD operations working correctly: POST /api/setups (create), GET /api/setups (list), GET /api/setups/{id} (get specific), PUT /api/setups/{id} (update), DELETE /api/setups/{id} (delete), GET /api/setups/stats/summary (stats). Data persistence verified with MongoDB. Minor: Error handling for non-existent IDs returns 500 instead of 404, but core functionality is solid."
+-- 
+-- frontend:
+--   - task: "Trading Checklist Mobile App"
+--@@ -146,4 +149,6 @@ test_plan:
+-- 
+-- agent_communication:
+--   - agent: "main"
+---    message: "Implemented forex trading checklist app with Direction/Stage/Entry sections and backend API. Ready for backend testing to verify all CRUD operations work correctly."
+--\ No newline at end of file
+--+    message: "Implemented forex trading checklist app with Direction/Stage/Entry sections and backend API. Ready for backend testing to verify all CRUD operations work correctly."
+--+  - agent: "testing"
+--+    message: "✅ Backend API testing completed successfully! All core CRUD operations for trading setups are working correctly. Created comprehensive test suite in /app/backend_test.py. All endpoints tested: POST /api/setups (create), GET /api/setups (list), GET /api/setups/{id} (get), PUT /api/setups/{id} (update), DELETE /api/setups/{id} (delete), GET /api/setups/stats/summary (stats). Data persistence with MongoDB verified. Only minor issue: error handling for non-existent IDs returns 500 instead of 404, but this doesn't affect core functionality."
+--\ No newline at end of file
