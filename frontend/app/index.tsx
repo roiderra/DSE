@@ -885,7 +885,13 @@ Screenshots are saved locally with the setup data.
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Forex Trading Plan</Text>
         <Text style={styles.setupName}>{currentSetup.name}</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={saveSetup}>
+        <TouchableOpacity 
+          style={styles.saveButton} 
+          onPress={() => {
+            console.log('🔥 Button pressed!');
+            saveSetup();
+          }}
+        >
           <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
           <Text style={styles.saveButtonText}>Save & Generate Report</Text>
         </TouchableOpacity>
