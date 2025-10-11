@@ -97,9 +97,16 @@ export default function Index() {
 
   const loadSetupFromStorage = async () => {
     try {
-      const savedSetup = await AsyncStorage.getItem('currentTradingSetup');
-      if (savedSetup) {
-        setCurrentSetup(JSON.parse(savedSetup));
+      if (Platform.OS === 'web') {
+        const savedSetup = localStorage.getItem('currentTradingSetup');
+        if (savedSetup) {
+          setCurrentSetup(JSON.parse(savedSetup));
+        }
+      } else {
+        const savedSetup = await AsyncStorage.getItem('currentTradingSetup');
+        if (savedSetup) {
+          setCurrentSetup(JSON.parse(savedSetup));
+        }
       }
     } catch (error) {
       console.log('No saved setup found');
@@ -108,7 +115,11 @@ export default function Index() {
 
   const saveSetupToStorage = async (setup: TradingSetup) => {
     try {
-      await AsyncStorage.setItem('currentTradingSetup', JSON.stringify(setup));
+      if (Platform.OS === 'web') {
+        localStorage.setItem('currentTradingSetup', JSON.stringify(setup));
+      } else {
+        await AsyncStorage.setItem('currentTradingSetup', JSON.stringify(setup));
+      }
     } catch (error) {
       console.error('Failed to save setup to storage:', error);
     }
