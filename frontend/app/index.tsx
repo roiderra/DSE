@@ -26,9 +26,7 @@ interface TradingSetup {
 
 interface DirectionState {
   weeklyBias: 'bullish' | 'bearish' | null;
-  weeklyPattern: 'OHLC' | 'OLHC' | null;
   dailyBias: 'higher' | 'lower' | null;
-  dailyAlignedWithWeekly: boolean;
   screenshot: string | null; // base64 encoded image
   completed: boolean;
 }
