@@ -272,117 +272,99 @@ export default function Index() {
     );
   };
 
-  const renderDirectionSection = () => (
-    <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>DIRECTION</Text>
-        <Text style={styles.sectionSubtitle}>Am I anticipating a bullish or bearish week?</Text>
-      </View>
+  const renderDirectionSection = () => {
+    // Автоматически проверяем совпадение недельного и дневного направления
+    const checkAlignment = () => {
+      if (!currentSetup.direction.weeklyBias || !currentSetup.direction.dailyBias) return null;
+      
+      const aligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
+                     (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
+      return aligned;
+    };
 
-      <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>Weekly Bias</Text>
-        <Text style={styles.checklistSubtitle}>Am I anticipating a bullish or bearish week?</Text>
-        
-        <View style={styles.optionRow}>
-          {(['bullish', 'bearish'] as const).map((bias) => (
-            <TouchableOpacity
-              key={bias}
-              style={[
-                styles.optionButton,
-                currentSetup.direction.weeklyBias === bias && styles.selectedOption,
-                bias === 'bullish' && currentSetup.direction.weeklyBias === bias && styles.bullishOption,
-                bias === 'bearish' && currentSetup.direction.weeklyBias === bias && styles.bearishOption
-              ]}
-              onPress={() => updateDirection('weeklyBias', bias)}
-            >
-              <Text style={[styles.optionText, currentSetup.direction.weeklyBias === bias && styles.selectedOptionText]}>
-                {bias.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
+    const isAligned = checkAlignment();
+
+    return (
+      <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>DIRECTION</Text>
+          <Text style={styles.sectionSubtitle}>Identify closest M/W/D PDAs</Text>
         </View>
 
-        <Text style={styles.optionLabel}>Weekly Pattern:</Text>
-        <View style={styles.optionRow}>
-          {(['OHLC', 'OLHC'] as const).map((pattern) => (
-            <TouchableOpacity
-              key={pattern}
-              style={[styles.optionButton, currentSetup.direction.weeklyPattern === pattern && styles.selectedOption]}
-              onPress={() => updateDirection('weeklyPattern', pattern)}
-            >
-              <Text style={[styles.optionText, currentSetup.direction.weeklyPattern === pattern && styles.selectedOptionText]}>
-                {pattern}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>Daily Bias</Text>
-        <Text style={styles.checklistSubtitle}>Is today's daily candle likely to trade higher or lower?</Text>
-        <Text style={styles.checklistSubtitle}>(Should be in line with anticipated weekly bias)</Text>
-        
-        <View style={styles.optionRow}>
-          {(['higher', 'lower'] as const).map((direction) => (
-            <TouchableOpacity
-              key={direction}
-              style={[
-                styles.optionButton,
-                currentSetup.direction.dailyBias === direction && styles.selectedOption,
-                direction === 'higher' && currentSetup.direction.dailyBias === direction && styles.bullishOption,
-                direction === 'lower' && currentSetup.direction.dailyBias === direction && styles.bearishOption
-              ]}
-              onPress={() => updateDirection('dailyBias', direction)}
-            >
-              <Text style={[styles.optionText, currentSetup.direction.dailyBias === direction && styles.selectedOptionText]}>
-                {direction.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Weekly Bias</Text>
+          <Text style={styles.checklistSubtitle}>Am I anticipating a bullish or bearish week?</Text>
+          
+          <View style={styles.optionRow}>
+            {(['bullish', 'bearish'] as const).map((bias) => (
+              <TouchableOpacity
+                key={bias}
+                style={[
+                  styles.optionButton,
+                  currentSetup.direction.weeklyBias === bias && styles.selectedOption,
+                  bias === 'bullish' && currentSetup.direction.weeklyBias === bias && styles.bullishOption,
+                  bias === 'bearish' && currentSetup.direction.weeklyBias === bias && styles.bearishOption
+                ]}
+                onPress={() => updateDirection('weeklyBias', bias)}
+              >
+                <Text style={[styles.optionText, currentSetup.direction.weeklyBias === bias && styles.selectedOptionText]}>
+                  {bias.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        <CheckboxItem
-          label="Daily bias aligns with weekly bias"
-          checked={currentSetup.direction.dailyAlignedWithWeekly}
-          onPress={(value) => updateDirection('dailyAlignedWithWeekly', value)}
-        />
-      </View>
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Daily Bias</Text>
+          <Text style={styles.checklistSubtitle}>Is today's daily candle likely to trade higher or lower?</Text>
+          
+          <View style={styles.optionRow}>
+            {(['higher', 'lower'] as const).map((direction) => (
+              <TouchableOpacity
+                key={direction}
+                style={[
+                  styles.optionButton,
+                  currentSetup.direction.dailyBias === direction && styles.selectedOption,
+                  direction === 'higher' && currentSetup.direction.dailyBias === direction && styles.bullishOption,
+                  direction === 'lower' && currentSetup.direction.dailyBias === direction && styles.bearishOption
+                ]}
+                onPress={() => updateDirection('dailyBias', direction)}
+              >
+                <Text style={[styles.optionText, currentSetup.direction.dailyBias === direction && styles.selectedOptionText]}>
+                  {direction.toUpperCase()}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
-      {/* Alignment Warning */}
-      {currentSetup.direction.weeklyBias && currentSetup.direction.dailyBias && (
-        <View style={[
-          styles.alignmentWarning,
-          (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'lower') ||
-          (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'higher')
-            ? styles.conflictWarning : styles.alignedWarning
-        ]}>
-          <Ionicons 
-            name={(currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'lower') ||
-                  (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'higher')
-                    ? 'warning' : 'checkmark-circle'} 
-            size={20} 
-            color={(currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'lower') ||
-                  (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'higher')
-                    ? '#FF9800' : '#4CAF50'} 
-          />
-          <Text style={[
-            styles.alignmentText,
-            (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'lower') ||
-            (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'higher')
-              ? styles.conflictText : styles.alignedText
+        {/* Автоматическое предупреждение о совпадении */}
+        {currentSetup.direction.weeklyBias && currentSetup.direction.dailyBias && (
+          <View style={[
+            styles.alignmentWarning,
+            isAligned === false ? styles.conflictWarning : styles.alignedWarning
           ]}>
-            {(currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'lower') ||
-             (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'higher')
-              ? 'Daily and Weekly bias conflict - Review setup'
-              : 'Daily and Weekly bias are aligned ✓'}
-          </Text>
-        </View>
-      )}
+            <Ionicons 
+              name={isAligned === false ? 'warning' : 'checkmark-circle'} 
+              size={20} 
+              color={isAligned === false ? '#FF9800' : '#4CAF50'} 
+            />
+            <Text style={[
+              styles.alignmentText,
+              isAligned === false ? styles.conflictText : styles.alignedText
+            ]}>
+              {isAligned === false
+                ? 'Daily and Weekly bias conflict - Review setup'
+                : 'Daily and Weekly bias are aligned ✓'}
+            </Text>
+          </View>
+        )}
 
-      <ImageUploadSection section="direction" screenshot={currentSetup.direction.screenshot} />
-    </ScrollView>
-  );
+        <ImageUploadSection section="direction" screenshot={currentSetup.direction.screenshot} />
+      </ScrollView>
+    );
+  };
 
   const renderStageSection = () => (
     <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
