@@ -1605,6 +1605,29 @@ const styles = StyleSheet.create({
     color: '#00D4FF',
   },
   
+  // Стили для кнопок
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
+  },
+  testButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1a1a',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  testButtonText: {
+    color: '#FF6B6B',
+    marginLeft: 4,
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  
   // Стили для заблокированных вкладок
   lockedTab: {
     opacity: 0.5,
