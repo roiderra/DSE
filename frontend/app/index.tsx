@@ -171,9 +171,9 @@ export default function Index() {
     return entry.highGradeSwingPoint && 
            entry.swingPointType !== null && 
            entry.oteLevel && 
-           entry.entryAt062 && 
-           entry.stopLossAt1 && 
-           entry.takeProfitAt0 && 
+           entry.oteRetracement !== null && 
+           entry.stopLossLevel !== null && 
+           entry.takeProfitLevel !== null && 
            entry.riskReward !== null;
   };
 
