@@ -94,55 +94,25 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Очистка памяти при загрузке страницы
+  // Полная очистка памяти при каждом запуске
   useEffect(() => {
-    // ВСЕГДА очищаем память при каждой перезагрузке страницы
-    clearMemoryOnPageLoad();
-    // НЕ загружаем данные - начинаем с чистого листа
-    console.log('🎯 Starting with clean setup on page load');
+    console.log('🧹 App started - clearing all memory');
+    
+    // Полностью очищаем localStorage
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.clear();
+        console.log('✅ localStorage cleared completely');
+      } catch (error) {
+        console.log('localStorage clear failed:', error);
+      }
+    }
+    
+    // Устанавливаем флаг что память очищена
+    console.log('🎯 Memory cleared - starting fresh');
   }, []);
 
-  const clearMemoryOnPageLoad = () => {
-    try {
-      if (Platform.OS === 'web' && typeof localStorage !== 'undefined') {
-        // Полностью очищаем localStorage при каждой загрузке
-        localStorage.clear();
-        console.log('🧹 All localStorage cleared on page reload');
-      }
-    } catch (error) {
-      console.log('Memory clear failed:', error);
-    }
-  };
-
-  const loadSetupFromStorage = async () => {
-    try {
-      if (Platform.OS === 'web') {
-        const savedSetup = localStorage.getItem('currentTradingSetup');
-        if (savedSetup) {
-          setCurrentSetup(JSON.parse(savedSetup));
-        }
-      } else {
-        const savedSetup = await AsyncStorage.getItem('currentTradingSetup');
-        if (savedSetup) {
-          setCurrentSetup(JSON.parse(savedSetup));
-        }
-      }
-    } catch (error) {
-      console.log('No saved setup found');
-    }
-  };
-
-  const saveSetupToStorage = async (setup: TradingSetup) => {
-    try {
-      if (Platform.OS === 'web') {
-        localStorage.setItem('currentTradingSetup', JSON.stringify(setup));
-      } else {
-        await AsyncStorage.setItem('currentTradingSetup', JSON.stringify(setup));
-      }
-    } catch (error) {
-      console.error('Failed to save setup to storage:', error);
-    }
-  };
+  // УДАЛЕНЫ функции автоматического сохранения чтобы избежать перезаписи
 
   const saveSetup = async () => {
     console.log('🚀 saveSetup started');
