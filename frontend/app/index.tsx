@@ -79,9 +79,9 @@ export default function Index() {
       highGradeSwingPoint: false,
       swingPointType: null,
       oteLevel: false,
-      entryAt062: false,
-      stopLossAt1: false,
-      takeProfitAt0: false,
+      oteRetracement: null,
+      stopLossLevel: null,
+      takeProfitLevel: null,
       riskReward: null,
       screenshot: null,
       completed: false
