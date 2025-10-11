@@ -63,9 +63,7 @@ export default function Index() {
     name: `Setup ${new Date().toLocaleDateString()}`,
     direction: {
       weeklyBias: null,
-      weeklyPattern: null,
       dailyBias: null,
-      dailyAlignedWithWeekly: false,
       screenshot: null,
       completed: false
     },
