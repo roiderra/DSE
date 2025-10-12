@@ -174,7 +174,7 @@ export default function Index() {
           .value { color:#fff; font-weight:600; }
           .good { color:#4CAF50; }
           .warn { color:#FF9800; }
-          img { width:100%; max-height:320px; object-fit:cover; border-radius:8px; margin-top:8px; }
+          img { width:100%; max-height:1200px; object-fit:cover; border-radius:8px; margin-top:8px; }
         </style>
       </head>
       <body>
