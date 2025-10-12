@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -52,7 +52,7 @@ interface EntryState {
   oteRetracement: '0.62' | '0.705' | '0.75' | null;
   stopLossLevel: '1' | '0.9' | null;
   takeProfitLevel: '0' | '-0.28' | null;
-  riskReward: '1R' | '2R' | '3R' | null;
+  riskReward: '1.5R' | '2R' | '3R' | null;
   screenshot: string | null;
   completed: boolean;
 }
@@ -93,6 +93,11 @@ export default function Index() {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   });
+
+  // Refs для ScrollView каждой секции
+  const directionScrollRef = useRef<ScrollView>(null);
+  const stageScrollRef = useRef<ScrollView>(null);
+  const entryScrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     const initFresh = async () => {
@@ -140,6 +145,15 @@ export default function Index() {
 
   const saveSetup = async () => {
     console.log('🚀 saveSetup called (noop for now)');
+  };
+
+  // Функция для генерации уникального имени файла с временной меткой
+  const generateUniqueFileName = (baseName: string) => {
+    const timestamp = new Date().toISOString()
+      .replace(/[:.]/g, '-')
+      .replace('T', '_')
+      .split('.')[0];
+    return `${baseName}_${timestamp}`;
   };
 
   const generateReport = async () => {
@@ -214,11 +228,12 @@ export default function Index() {
       </html>`;
 
       if (Platform.OS === 'web') {
+        const fileName = generateUniqueFileName('forex-setup');
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.html`;
+        a.download = `${fileName}.html`;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
@@ -226,14 +241,13 @@ export default function Index() {
         URL.revokeObjectURL(url);
       } else {
         const { uri } = await Print.printToFileAsync({ html });
-        let targetUri = uri;
-        const newPath = `${FileSystem.documentDirectory}forex-report-${Date.now()}.pdf`;
+        const fileName = generateUniqueFileName('forex-report');
+        const newPath = `${FileSystem.documentDirectory}${fileName}.pdf`;
         await FileSystem.moveAsync({ from: uri, to: newPath });
-        targetUri = newPath;
-
+        
         const canShare = await Sharing.isAvailableAsync();
         if (canShare) {
-          await Sharing.shareAsync(targetUri, { dialogTitle: 'Share trading report PDF' });
+          await Sharing.shareAsync(newPath, { dialogTitle: 'Share trading report PDF' });
         }
       }
 
@@ -241,13 +255,14 @@ export default function Index() {
     } catch (e: any) {
       console.error('PDF generation failed, falling back to text:', e);
       try {
+        const fileName = generateUniqueFileName('forex-setup-error');
         const text = 'Report failed to render as PDF. Please try again.';
         if (Platform.OS === 'web') {
           const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
-          a.download = `forex-setup-${new Date().toISOString().split('T')[0]}.txt`;
+          a.download = `${fileName}.txt`;
           a.style.display = 'none';
           document.body.appendChild(a);
           a.click();
@@ -301,6 +316,12 @@ export default function Index() {
       };
       setCurrentSetup(freshSetup);
       setActiveTab('direction');
+      
+      // Сброс скролла при очистке данных
+      setTimeout(() => {
+        directionScrollRef.current?.scrollTo({ y: 0, animated: false });
+      }, 100);
+      
       if (Platform.OS === 'web') {
         setTimeout(() => {
           window.location.reload();
@@ -421,9 +442,18 @@ export default function Index() {
     
     setActiveTab(tab);
     
+    // Скролл вверх для активной вкладки
     setTimeout(() => {
-      if (typeof window !== 'undefined') {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      switch (tab) {
+        case 'direction':
+          directionScrollRef.current?.scrollTo({ y: 0, animated: true });
+          break;
+        case 'stage':
+          stageScrollRef.current?.scrollTo({ y: 0, animated: true });
+          break;
+        case 'entry':
+          entryScrollRef.current?.scrollTo({ y: 0, animated: true });
+          break;
       }
     }, 100);
   };
@@ -604,7 +634,11 @@ export default function Index() {
     const isAligned = checkAlignment();
 
     return (
-      <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        ref={directionScrollRef}
+        style={styles.sectionContainer} 
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIRECTION</Text>
           <Text style={styles.sectionSubtitle}>Identify closest M/W/D PDAs</Text>
@@ -685,7 +719,11 @@ export default function Index() {
   };
 
   const renderStageSection = () => (
-    <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      ref={stageScrollRef}
+      style={styles.sectionContainer} 
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>STAGE</Text>
         <Text style={styles.sectionSubtitle}>For the Stage I need to see these two things</Text>
@@ -784,7 +822,11 @@ export default function Index() {
   );
 
   const renderEntrySection = () => (
-    <ScrollView style={styles.sectionContainer} showsVerticalScrollIndicator={false}>
+    <ScrollView 
+      ref={entryScrollRef}
+      style={styles.sectionContainer} 
+      showsVerticalScrollIndicator={false}
+    >
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>ENTRY</Text>
         <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
@@ -985,6 +1027,7 @@ export default function Index() {
   );
 }
 
+// Стили остаются без изменений...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
