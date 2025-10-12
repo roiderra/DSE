@@ -40,9 +40,8 @@
       "typedRoutes": true
     },
     "extra": {
-      "router": {},
       "eas": {
-        "projectId": "roiderra-DSE"
+        "projectId": "ccd1c455-37dc-4e78-a86a-bc0b912cf377"
       }
     }
   }
