@@ -94,40 +94,13 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Refs для ScrollView каждой секции
-  const directionScrollRef = useRef<ScrollView>(null);
-  const stageScrollRef = useRef<ScrollView>(null);
-  const entryScrollRef = useRef<ScrollView>(null);
-  const scrollViewRefs = {
-    direction: directionScrollRef,
-    stage: stageScrollRef,
-    entry: entryScrollRef
-  };
+  // Единый ref для основного ScrollView
+  const mainScrollRef = useRef<ScrollView>(null);
 
-  // Функция для скролла вверх с улучшенной логикой
-  const scrollToTop = (tab: TabType) => {
-    const scrollViewRef = scrollViewRefs[tab];
-    
-    if (scrollViewRef.current) {
-      // Множественные попытки скролла для надежности
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      }, 50);
-      
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      }, 150);
-      
-      setTimeout(() => {
-        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-      }, 300);
-    }
-
-    // Дополнительно для веба
-    if (Platform.OS === 'web') {
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
+  // Функция для скролла вверх
+  const scrollToTop = () => {
+    if (mainScrollRef.current) {
+      mainScrollRef.current.scrollTo({ y: 0, animated: true });
     }
   };
 
@@ -177,7 +150,7 @@ export default function Index() {
 
   // Скролл вверх при изменении активной вкладки
   useEffect(() => {
-    scrollToTop(activeTab);
+    scrollToTop();
   }, [activeTab]);
 
   const saveSetup = async () => {
@@ -206,15 +179,10 @@ export default function Index() {
     return rrRatio.toFixed(2) + 'R';
   };
 
-  // Функция для получения цвета RR в зависимости от значения
+  // Упрощенная функция для цвета RR - всегда зеленый
   const getRRColor = (rr: string) => {
     if (rr === 'N/A') return '#888';
-    
-    const value = parseFloat(rr);
-    if (value >= 3) return '#1B5E20'; // Отличный RR
-    if (value >= 2) return '#2E7D32'; // Хороший RR
-    if (value >= 1.5) return '#4CAF50'; // Нормальный RR
-    return '#F44336'; // Плохой RR
+    return '#4CAF50'; // Всегда зеленый для корректных значений
   };
 
   // Функция для генерации уникального имени файла с временной меткой
@@ -291,12 +259,7 @@ export default function Index() {
           ${currentSetup.entry.screenshot ? `<img src="${currentSetup.entry.screenshot}" />` : ''}
         </div>
 
-        <h2>Summary</h2>
-        <div class="section">
-          <div class="row">Overall Progress: Direction [${currentSetup.direction.completed ? '✓' : '✗'}] | Stage [${currentSetup.stage.completed ? '✓' : '✗'}] | Entry [${currentSetup.entry.completed ? '✓' : '✗'}]</div>
-          <div class="row">Created: ${new Date(currentSetup.createdAt).toLocaleString('ru-RU')}</div>
-          <div class="row">Last Updated: ${new Date(currentSetup.updatedAt).toLocaleString('ru-RU')}</div>
-        </div>
+        
       </body>
       </html>`;
 
@@ -686,12 +649,7 @@ export default function Index() {
     const isAligned = checkAlignment();
 
     return (
-      <ScrollView 
-        ref={directionScrollRef}
-        style={styles.sectionContainer} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIRECTION</Text>
           <Text style={styles.sectionSubtitle}>Identify closest M/W/D PDAs</Text>
@@ -767,17 +725,12 @@ export default function Index() {
         )}
 
         <ImageUploadSection section="direction" screenshot={currentSetup.direction.screenshot} />
-      </ScrollView>
+      </View>
     );
   };
 
   const renderStageSection = () => (
-    <ScrollView 
-      ref={stageScrollRef}
-      style={styles.sectionContainer} 
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
+    <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>STAGE</Text>
         <Text style={styles.sectionSubtitle}>For the Stage I need to see these two things</Text>
@@ -872,7 +825,7 @@ export default function Index() {
       )}
 
       <ImageUploadSection section="stage" screenshot={currentSetup.stage.screenshot} />
-    </ScrollView>
+    </View>
   );
 
   const renderEntrySection = () => {
@@ -880,12 +833,7 @@ export default function Index() {
     const rrColor = getRRColor(calculatedRR);
 
     return (
-      <ScrollView 
-        ref={entryScrollRef}
-        style={styles.sectionContainer} 
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>ENTRY</Text>
           <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
@@ -1030,7 +978,7 @@ export default function Index() {
         )}
 
         <ImageUploadSection section="entry" screenshot={currentSetup.entry.screenshot} />
-      </ScrollView>
+      </View>
     );
   };
 
@@ -1072,7 +1020,14 @@ export default function Index() {
       </View>
 
       <View style={styles.content}>
-        {getTabContent()}
+        <ScrollView
+          ref={mainScrollRef}
+          style={styles.mainScrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {getTabContent()}
+        </ScrollView>
       </View>
     </SafeAreaView>
   );
@@ -1160,12 +1115,14 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  sectionContainer: {
+  mainScrollView: {
     flex: 1,
-    paddingHorizontal: 16,
   },
   scrollContent: {
     flexGrow: 1,
+  },
+  sectionContainer: {
+    paddingHorizontal: 16,
     paddingBottom: 20,
   },
   sectionHeader: {
@@ -1358,7 +1315,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4CAF50',
   },
-  // Новые стили для автоматического RR
+  // Стили для автоматического RR
   rrDisplay: {
     alignItems: 'center',
     marginVertical: 12,
