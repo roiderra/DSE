@@ -33,7 +33,7 @@ interface TradingSetup {
 interface DirectionState {
   weeklyBias: 'bullish' | 'bearish' | null;
   dailyBias: 'higher' | 'lower' | null;
-  screenshot: string | null; // base64 encoded image
+  screenshot: string | null;
   completed: boolean;
 }
 
@@ -41,7 +41,7 @@ interface StageState {
   priceCondition: 'pd_array' | 'stops_run' | null;
   displacement: boolean;
   displacementType: 'mss' | 'fvg_cut' | null;
-  screenshot: string | null; // base64 encoded image
+  screenshot: string | null;
   completed: boolean;
 }
 
@@ -53,13 +53,13 @@ interface EntryState {
   stopLossLevel: '1' | '0.9' | null;
   takeProfitLevel: '0' | '-0.28' | null;
   riskReward: '1R' | '2R' | '3R' | null;
-  screenshot: string | null; // base64 encoded image
+  screenshot: string | null;
   completed: boolean;
 }
 
 type TabType = 'direction' | 'stage' | 'entry';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabType>('direction');
@@ -94,7 +94,6 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
-  // Чистый старт при каждом запуске: очищаем AsyncStorage и сбрасываем state
   useEffect(() => {
     const initFresh = async () => {
       try {
@@ -139,17 +138,12 @@ export default function Index() {
     initFresh();
   }, []);
 
-  // УДАЛЕНЫ функции автоматического сохранения чтобы избежать перезаписи
-
   const saveSetup = async () => {
     console.log('🚀 saveSetup called (noop for now)');
-    // No-op: explicit save is not required; generation handles persistence
   };
 
   const generateReport = async () => {
-    // Генерация PDF с встраиванием скриншотов в соответствующие разделы
     try {
-      // Валидация: все секции должны быть завершены
       if (!currentSetup.direction.completed || !currentSetup.stage.completed || !currentSetup.entry.completed) {
         Alert.alert('Требуется завершить все секции', 'Пожалуйста, завершите Direction, Stage и Entry и загрузите скриншоты для каждой секции.');
         return;
@@ -174,7 +168,7 @@ export default function Index() {
           .value { color:#fff; font-weight:600; }
           .good { color:#4CAF50; }
           .warn { color:#FF9800; }
-          img { width:100%; max-height:1200px; object-fit:cover; border-radius:8px; margin-top:8px; }
+          img { width:100%; max-height:1200px; object-fit:contain; border-radius:8px; margin-top:8px; }
         </style>
       </head>
       <body>
@@ -220,7 +214,6 @@ export default function Index() {
       </html>`;
 
       if (Platform.OS === 'web') {
-        // Простая веб-фоллбек стратегия: скачать HTML как .html или .txt (без сторонних либ)
         const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -234,7 +227,6 @@ export default function Index() {
       } else {
         const { uri } = await Print.printToFileAsync({ html });
         let targetUri = uri;
-        // Переименуем файл и переместим в Documents
         const newPath = `${FileSystem.documentDirectory}forex-report-${Date.now()}.pdf`;
         await FileSystem.moveAsync({ from: uri, to: newPath });
         targetUri = newPath;
@@ -245,11 +237,9 @@ export default function Index() {
         }
       }
 
-      // Авто очистка и возврат на Direction
       await clearAllData();
     } catch (e: any) {
       console.error('PDF generation failed, falling back to text:', e);
-      // Как фоллбек создаем текстовый отчет (веб скачает файл)
       try {
         const text = 'Report failed to render as PDF. Please try again.';
         if (Platform.OS === 'web') {
@@ -271,12 +261,10 @@ export default function Index() {
     }
   };
 
-  // Простая и гарантированно работающая функция генерации отчета
   const handleGenerateReport = async () => {
     await generateReport();
   };
 
-  // Функция для очистки всех данных и сброса к начальному состоянию
   const clearAllData = async () => {
     try {
       console.log('🧹 Clearing all data...');
@@ -314,7 +302,6 @@ export default function Index() {
       setCurrentSetup(freshSetup);
       setActiveTab('direction');
       if (Platform.OS === 'web') {
-        // мгновенная перезагрузка страницы, чтобы убедиться в чистом состоянии
         setTimeout(() => {
           window.location.reload();
         }, 150);
@@ -324,8 +311,6 @@ export default function Index() {
       console.error('Error clearing data:', error);
     }
   };
-
-  // createPDFTemplate удалена - используется jsPDF для клиентской генерации
 
   const updateDirection = (field: keyof DirectionState, value: any) => {
     const newSetup = {
@@ -342,7 +327,6 @@ export default function Index() {
     };
     
     setCurrentSetup(newSetup);
-    // УБРАНО автоматическое сохранение для предотвращения перезаписи памяти
   };
 
   const updateStage = (field: keyof StageState, value: any) => {
@@ -360,7 +344,6 @@ export default function Index() {
     };
     
     setCurrentSetup(newSetup);
-    // УБРАНО автоматическое сохранение для предотвращения перезаписи памяти
   };
 
   const updateEntry = (field: keyof EntryState, value: any) => {
@@ -378,20 +361,19 @@ export default function Index() {
     };
     
     setCurrentSetup(newSetup);
-    // УБРАНО автоматическое сохранение для предотвращения перезаписи памяти
   };
 
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
            direction.dailyBias !== null &&
-           direction.screenshot !== null; // Скриншот обязателен
+           direction.screenshot !== null;
   };
 
   const checkStageCompleted = (stage: StageState): boolean => {
     return stage.priceCondition !== null && 
            stage.displacement && 
            stage.displacementType !== null &&
-           stage.screenshot !== null; // Скриншот обязателен
+           stage.screenshot !== null;
   };
 
   const checkEntryCompleted = (entry: EntryState): boolean => {
@@ -402,24 +384,22 @@ export default function Index() {
            entry.stopLossLevel !== null && 
            entry.takeProfitLevel !== null && 
            entry.riskReward !== null &&
-           entry.screenshot !== null; // Скриншот обязателен
+           entry.screenshot !== null;
   };
 
-  // Проверяем доступность вкладок
   const isTabAccessible = (tab: TabType): boolean => {
     switch (tab) {
       case 'direction':
-        return true; // Direction всегда доступен
+        return true;
       case 'stage':
-        return currentSetup.direction.completed; // Stage доступен только если Direction завершен
+        return currentSetup.direction.completed;
       case 'entry':
-        return currentSetup.direction.completed && currentSetup.stage.completed; // Entry доступен только если Direction и Stage завершены
+        return currentSetup.direction.completed && currentSetup.stage.completed;
       default:
         return false;
     }
   };
 
-  // Обновленная функция переключения вкладок с проверкой доступности и автоскроллом
   const switchTab = (tab: TabType) => {
     if (!isTabAccessible(tab)) {
       const requiredSections = [];
@@ -441,7 +421,6 @@ export default function Index() {
     
     setActiveTab(tab);
     
-    // Автоматический скролл вверх при переключении вкладок
     setTimeout(() => {
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -451,7 +430,6 @@ export default function Index() {
 
   const pickImage = async (section: 'direction' | 'stage' | 'entry') => {
     try {
-      // Request permissions
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
       if (permissionResult.granted === false) {
@@ -459,19 +437,17 @@ export default function Index() {
         return;
       }
 
-      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
+        allowsEditing: false,
+        aspect: undefined,
+        quality: 0.9,
         base64: true
       });
 
       if (!result.canceled && result.assets[0].base64) {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
         
-        // Update the appropriate section with the image
         if (section === 'direction') {
           updateDirection('screenshot', base64Image);
         } else if (section === 'stage') {
@@ -510,6 +486,55 @@ export default function Index() {
       ]
     );
   };
+
+  const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
+    <View style={styles.imageUploadSection}>
+      <Text style={styles.imageUploadTitle}>📸 Chart Screenshot</Text>
+      
+      {screenshot ? (
+        <View style={styles.imageContainer}>
+          <ScrollView 
+            horizontal={true} 
+            showsHorizontalScrollIndicator={true}
+            style={styles.imageScrollView}
+            maximumZoomScale={3.0}
+            minimumZoomScale={1.0}
+          >
+            <Image 
+              source={{ uri: screenshot }} 
+              style={styles.uploadedImage}
+              resizeMode="contain"
+            />
+          </ScrollView>
+          <View style={styles.imageOverlay}>
+            <TouchableOpacity
+              style={styles.imageButton}
+              onPress={() => pickImage(section)}
+            >
+              <Ionicons name="camera" size={16} color="#fff" />
+              <Text style={styles.imageButtonText}>Replace</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.imageButton, styles.removeButton]}
+              onPress={() => removeImage(section)}
+            >
+              <Ionicons name="trash" size={16} color="#fff" />
+              <Text style={styles.imageButtonText}>Remove</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity
+          style={styles.uploadButton}
+          onPress={() => pickImage(section)}
+        >
+          <Ionicons name="camera-outline" size={32} color="#00D4FF" />
+          <Text style={styles.uploadButtonText}>Upload Chart Screenshot</Text>
+          <Text style={styles.uploadButtonSubtext}>Tap to select from gallery</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   const renderTabButton = (tab: TabType, icon: string, label: string) => {
     const isActive = activeTab === tab;
@@ -558,8 +583,16 @@ export default function Index() {
     );
   };
 
+  const CheckboxItem = ({ label, checked, onPress }: { label: string; checked: boolean; onPress: (value: boolean) => void }) => (
+    <TouchableOpacity style={styles.checkboxItem} onPress={() => onPress(!checked)}>
+      <View style={[styles.checkbox, checked && styles.checkedBox]}>
+        {checked && <Ionicons name="checkmark" size={16} color="#1a1a1a" />}
+      </View>
+      <Text style={[styles.checkboxLabel, checked && styles.checkedLabel]}>{label}</Text>
+    </TouchableOpacity>
+  );
+
   const renderDirectionSection = () => {
-    // Автоматически проверяем совпадение недельного и дневного направления
     const checkAlignment = () => {
       if (!currentSetup.direction.weeklyBias || !currentSetup.direction.dailyBias) return null;
       
@@ -625,7 +658,6 @@ export default function Index() {
           </View>
         </View>
 
-        {/* Автоматическое предупреждение о совпадении */}
         {currentSetup.direction.weeklyBias && currentSetup.direction.dailyBias && (
           <View style={[
             styles.alignmentWarning,
@@ -673,7 +705,7 @@ export default function Index() {
                 {currentSetup.stage.priceCondition === 'pd_array' && <View style={styles.radioDot} />}
               </View>
               <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOptionText]}>
-                Price is at or coming from a 4H+ PD Array in line with my bias
+                Price is at or coming from a 4H+ PDA in line with my bias
               </Text>
             </View>
           </TouchableOpacity>
@@ -692,8 +724,6 @@ export default function Index() {
             </View>
           </TouchableOpacity>
         </View>
-
-        {/* Details section removed as requested */}
       </View>
 
       <View style={styles.checklistSection}>
@@ -742,7 +772,6 @@ export default function Index() {
         )}
       </View>
 
-      {/* Stage Completion Indicator */}
       {currentSetup.stage.completed && (
         <View style={styles.completionSection}>
           <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -867,13 +896,13 @@ export default function Index() {
 
         <Text style={styles.optionLabel}>Risk-Reward Ratio:</Text>
         <View style={styles.optionRow}>
-          {(['1R', '2R', '3R'] as const).map((rr) => (
+          {(['1.5R', '2R', '3R'] as const).map((rr) => (
             <TouchableOpacity
               key={rr}
               style={[
                 styles.rrButton,
                 currentSetup.entry.riskReward === rr && styles.selectedRR,
-                rr === '1R' && currentSetup.entry.riskReward === rr && styles.goodRR,
+                rr === '1.5R' && currentSetup.entry.riskReward === rr && styles.goodRR,
                 rr === '2R' && currentSetup.entry.riskReward === rr && styles.excellentRR,
                 rr === '3R' && currentSetup.entry.riskReward === rr && styles.perfectRR
               ]}
@@ -891,7 +920,7 @@ export default function Index() {
         <Text style={styles.reminderTitle}>💡 TRADING REMINDER</Text>
         <View style={styles.reminderContent}>
           <Text style={styles.reminderText}>
-            <Text style={styles.reminderBold}>Consistent 1R-3R trades</Text>
+            <Text style={styles.reminderBold}>Consistent 1.5R-3R trades</Text>
             {'\n'}Rinse and repeat
           </Text>
           <Text style={styles.reminderText}>
@@ -901,7 +930,6 @@ export default function Index() {
         </View>
       </View>
 
-      {/* Entry Completion Indicator */}
       {currentSetup.entry.completed && (
         <View style={styles.completionSection}>
           <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -911,52 +939,6 @@ export default function Index() {
 
       <ImageUploadSection section="entry" screenshot={currentSetup.entry.screenshot} />
     </ScrollView>
-  );
-
-  const CheckboxItem = ({ label, checked, onPress }: { label: string; checked: boolean; onPress: (value: boolean) => void }) => (
-    <TouchableOpacity style={styles.checkboxItem} onPress={() => onPress(!checked)}>
-      <View style={[styles.checkbox, checked && styles.checkedBox]}>
-        {checked && <Ionicons name="checkmark" size={16} color="#1a1a1a" />}
-      </View>
-      <Text style={[styles.checkboxLabel, checked && styles.checkedLabel]}>{label}</Text>
-    </TouchableOpacity>
-  );
-
-  const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
-    <View style={styles.imageUploadSection}>
-      <Text style={styles.imageUploadTitle}>📸 Chart Screenshot</Text>
-      
-      {screenshot ? (
-        <View style={styles.imageContainer}>
-          <Image source={{ uri: screenshot }} style={styles.uploadedImage} />
-          <View style={styles.imageOverlay}>
-            <TouchableOpacity
-              style={styles.imageButton}
-              onPress={() => pickImage(section)}
-            >
-              <Ionicons name="camera" size={16} color="#fff" />
-              <Text style={styles.imageButtonText}>Replace</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.imageButton, styles.removeButton]}
-              onPress={() => removeImage(section)}
-            >
-              <Ionicons name="trash" size={16} color="#fff" />
-              <Text style={styles.imageButtonText}>Remove</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      ) : (
-        <TouchableOpacity
-          style={styles.uploadButton}
-          onPress={() => pickImage(section)}
-        >
-          <Ionicons name="camera-outline" size={32} color="#00D4FF" />
-          <Text style={styles.uploadButtonText}>Upload Chart Screenshot</Text>
-          <Text style={styles.uploadButtonSubtext}>Tap to select from gallery</Text>
-        </TouchableOpacity>
-      )}
-    </View>
   );
 
   const getTabContent = () => {
@@ -980,68 +962,6 @@ export default function Index() {
         <Text style={styles.headerTitle}>Forex Trading Plan</Text>
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.testButton} 
-            onPress={() => {
-              console.log('🧪 Test clear button pressed');
-              Alert.alert(
-                'Clear Data Test',
-                'This will clear all data and reset the app. Continue?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { 
-                    text: 'Clear All Data', 
-                    style: 'destructive',
-                    onPress: () => {
-                      // Полная очистка через AsyncStorage
-                      AsyncStorage.clear();
-
-                      const freshSetup: TradingSetup = {
-                        id: '',
-                        name: `Fresh Setup ${new Date().toLocaleDateString()}`,
-                        direction: {
-                          weeklyBias: null,
-                          dailyBias: null,
-                          screenshot: null,
-                          completed: false,
-                        },
-                        stage: {
-                          priceCondition: null,
-                          displacement: false,
-                          displacementType: null,
-                          screenshot: null,
-                          completed: false,
-                        },
-                        entry: {
-                          highGradeSwingPoint: false,
-                          swingPointType: null,
-                          oteLevel: false,
-                          oteRetracement: null,
-                          stopLossLevel: null,
-                          takeProfitLevel: null,
-                          riskReward: null,
-                          screenshot: null,
-                          completed: false,
-                        },
-                        createdAt: new Date().toISOString(),
-                        updatedAt: new Date().toISOString(),
-                      };
-
-                      setCurrentSetup(freshSetup);
-                      setActiveTab('direction');
-
-                      console.log('✅ Manual clear completed');
-                      Alert.alert('Success', 'All data cleared! App reset to fresh state.');
-                    }
-                  }
-                ]
-              );
-            }}
-          >
-            <Ionicons name="refresh-outline" size={16} color="#FF6B6B" />
-            <Text style={styles.testButtonText}>Test Clear</Text>
-          </TouchableOpacity>
-          
           <TouchableOpacity 
             style={styles.saveButton} 
             onPress={handleGenerateReport}
@@ -1086,6 +1006,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#888',
     marginBottom: 12,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+    alignItems: 'center',
   },
   saveButton: {
     flexDirection: 'row',
@@ -1258,95 +1183,12 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     fontWeight: '600',
   },
-  outcomeButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 6,
-    marginRight: 8,
-    alignItems: 'center',
-  },
-  selectedOutcome: {
-    borderWidth: 2,
-  },
-  bullishOutcome: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  bearishOutcome: {
-    backgroundColor: '#f44336',
-    borderColor: '#f44336',
-  },
-  noTradeOutcome: {
-    backgroundColor: '#FF9800',
-    borderColor: '#FF9800',
-  },
-  outcomeText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  selectedOutcomeText: {
-    color: '#fff',
-  },
-  gatekeeperSection: {
-    backgroundColor: '#2a1f1a',
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: '#FF9800',
-  },
-  gatekeeperTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FF9800',
-    marginBottom: 12,
-  },
-  gatekeeperContent: {
-    gap: 8,
-  },
-  gatekeeperText: {
-    color: '#fff',
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  gatekeeperBold: {
-    fontWeight: 'bold',
-    color: '#FF9800',
-  },
-  summarySection: {
-    backgroundColor: '#1a2a1a',
-    borderRadius: 8,
-    padding: 16,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: '#4CAF50',
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginBottom: 8,
-  },
-  summaryText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  
-  // New styles for simplified UI
   bullishOption: {
     backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
   },
   bearishOption: {
     backgroundColor: '#f44336',
-    borderColor: '#f44336',
   },
-  
   alignmentWarning: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1374,7 +1216,6 @@ const styles = StyleSheet.create({
   alignedText: {
     color: '#4CAF50',
   },
-  
   radioButton: {
     width: 20,
     height: 20,
@@ -1394,21 +1235,16 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     backgroundColor: '#00D4FF',
   },
-  
   optionWithCheckbox: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  
-  // detailsInput styles removed as section was removed
-  
   displacementTypeSection: {
     marginTop: 12,
   },
   swingPointTypeSection: {
     marginTop: 12,
   },
-  
   completionSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1425,7 +1261,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4CAF50',
   },
-  
   rrButton: {
     flex: 1,
     paddingVertical: 10,
@@ -1460,7 +1295,6 @@ const styles = StyleSheet.create({
   selectedRRText: {
     color: '#fff',
   },
-  
   tradingReminderSection: {
     backgroundColor: '#1a1a2a',
     borderRadius: 8,
@@ -1487,31 +1321,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#00D4FF',
   },
-  
-  // Стили для кнопок
-  buttonContainer: {
-    flexDirection: 'row',
-    gap: 10,
-    alignItems: 'center',
-  },
-  testButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2a1a1a',
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 6,
-    borderWidth: 1,
-    borderColor: '#FF6B6B',
-  },
-  testButtonText: {
-    color: '#FF6B6B',
-    marginLeft: 4,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  
-  // Стили для заблокированных вкладок
   lockedTab: {
     opacity: 0.5,
   },
@@ -1523,8 +1332,6 @@ const styles = StyleSheet.create({
     top: -2,
     left: -2,
   },
-  
-  // Image Upload Styles
   imageUploadSection: {
     marginVertical: 20,
     padding: 16,
@@ -1564,12 +1371,14 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderRadius: 8,
     overflow: 'hidden',
+    maxHeight: 400,
+  },
+  imageScrollView: {
+    flex: 1,
   },
   uploadedImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
-    borderRadius: 8,
+    width: width - 64,
+    minHeight: 200,
   },
   imageOverlay: {
     position: 'absolute',
