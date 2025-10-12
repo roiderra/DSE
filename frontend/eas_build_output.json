@@ -1,4 +1,2 @@
-The field "cli.appVersionSource" is not set, but it will be required in the future. Learn more: https://docs.expo.dev/build-reference/app-versions/
-EAS project not configured.
-Must configure EAS project by running 'eas init' before this command can be run in non-interactive mode.
+Project config: Slug for project identified by "extra.eas.projectId" (dse) does not match the "slug" field (frontend). Learn more: https://expo.fyi/eas-project-id
     Error: build command failed.
