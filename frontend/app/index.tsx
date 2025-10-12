@@ -98,11 +98,14 @@ export default function Index() {
   const directionScrollRef = useRef<ScrollView>(null);
   const stageScrollRef = useRef<ScrollView>(null);
   const entryScrollRef = useRef<ScrollView>(null);
+  const contentRef = useRef<View>(null);
 
-  // Функция для скролла вверх
-  const scrollToTop = (tab: TabType) => {
+  // Функция для скролла вверх с разными методами для разных платформ
+  const scrollToTop = () => {
+    // Для мобильных устройств используем несколько методов
     setTimeout(() => {
-      switch (tab) {
+      // Метод 1: Скролл через refs ScrollView
+      switch (activeTab) {
         case 'direction':
           directionScrollRef.current?.scrollTo({ y: 0, animated: true });
           break;
@@ -113,6 +116,32 @@ export default function Index() {
           entryScrollRef.current?.scrollTo({ y: 0, animated: true });
           break;
       }
+
+      // Метод 2: Для веба используем window.scrollTo
+      if (Platform.OS === 'web') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Дополнительно скроллим контейнер контента если есть
+        const contentElement = document.querySelector('[data-content="true"]');
+        if (contentElement) {
+          contentElement.scrollTop = 0;
+        }
+      }
+
+      // Метод 3: Для мобильных устройств дополнительно используем requestAnimationFrame
+      requestAnimationFrame(() => {
+        switch (activeTab) {
+          case 'direction':
+            directionScrollRef.current?.scrollTo({ y: 0, animated: true });
+            break;
+          case 'stage':
+            stageScrollRef.current?.scrollTo({ y: 0, animated: true });
+            break;
+          case 'entry':
+            entryScrollRef.current?.scrollTo({ y: 0, animated: true });
+            break;
+        }
+      });
     }, 100);
   };
 
@@ -162,7 +191,7 @@ export default function Index() {
 
   // Скролл вверх при изменении активной вкладки
   useEffect(() => {
-    scrollToTop(activeTab);
+    scrollToTop();
   }, [activeTab]);
 
   const saveSetup = async () => {
@@ -640,6 +669,7 @@ export default function Index() {
         ref={directionScrollRef}
         style={styles.sectionContainer} 
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIRECTION</Text>
@@ -725,6 +755,7 @@ export default function Index() {
       ref={stageScrollRef}
       style={styles.sectionContainer} 
       showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
     >
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>STAGE</Text>
@@ -828,6 +859,7 @@ export default function Index() {
       ref={entryScrollRef}
       style={styles.sectionContainer} 
       showsVerticalScrollIndicator={false}
+      contentContainerStyle={styles.scrollContent}
     >
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>ENTRY</Text>
@@ -1022,14 +1054,17 @@ export default function Index() {
         {renderTabButton('entry', 'enter-outline', 'Entry')}
       </View>
 
-      <View style={styles.content}>
+      <View 
+        ref={contentRef}
+        style={styles.content}
+        data-content="true" // Для веб-селектора
+      >
         {getTabContent()}
       </View>
     </SafeAreaView>
   );
 }
 
-// Стили остаются без изменений...
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -1115,6 +1150,9 @@ const styles = StyleSheet.create({
   sectionContainer: {
     flex: 1,
     paddingHorizontal: 16,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   sectionHeader: {
     paddingVertical: 20,
