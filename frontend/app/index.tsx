@@ -99,6 +99,23 @@ export default function Index() {
   const stageScrollRef = useRef<ScrollView>(null);
   const entryScrollRef = useRef<ScrollView>(null);
 
+  // Функция для скролла вверх
+  const scrollToTop = (tab: TabType) => {
+    setTimeout(() => {
+      switch (tab) {
+        case 'direction':
+          directionScrollRef.current?.scrollTo({ y: 0, animated: true });
+          break;
+        case 'stage':
+          stageScrollRef.current?.scrollTo({ y: 0, animated: true });
+          break;
+        case 'entry':
+          entryScrollRef.current?.scrollTo({ y: 0, animated: true });
+          break;
+      }
+    }, 100);
+  };
+
   useEffect(() => {
     const initFresh = async () => {
       try {
@@ -142,6 +159,11 @@ export default function Index() {
     };
     initFresh();
   }, []);
+
+  // Скролл вверх при изменении активной вкладки
+  useEffect(() => {
+    scrollToTop(activeTab);
+  }, [activeTab]);
 
   const saveSetup = async () => {
     console.log('🚀 saveSetup called (noop for now)');
@@ -317,11 +339,6 @@ export default function Index() {
       setCurrentSetup(freshSetup);
       setActiveTab('direction');
       
-      // Сброс скролла при очистке данных
-      setTimeout(() => {
-        directionScrollRef.current?.scrollTo({ y: 0, animated: false });
-      }, 100);
-      
       if (Platform.OS === 'web') {
         setTimeout(() => {
           window.location.reload();
@@ -441,21 +458,6 @@ export default function Index() {
     }
     
     setActiveTab(tab);
-    
-    // Скролл вверх для активной вкладки
-    setTimeout(() => {
-      switch (tab) {
-        case 'direction':
-          directionScrollRef.current?.scrollTo({ y: 0, animated: true });
-          break;
-        case 'stage':
-          stageScrollRef.current?.scrollTo({ y: 0, animated: true });
-          break;
-        case 'entry':
-          entryScrollRef.current?.scrollTo({ y: 0, animated: true });
-          break;
-      }
-    }, 100);
   };
 
   const pickImage = async (section: 'direction' | 'stage' | 'entry') => {
