@@ -1,0 +1,4 @@
+✔ Project already linked (ID: roiderra-DSE). To re-configure, remove the "extra.eas.projectId" field from your app config.
+Invalid UUID appId
+Request ID: 2be2cbd7-42a1-4ff4-bd6a-cb007414891e
+    Error: GraphQL request failed.
