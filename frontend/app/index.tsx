@@ -52,7 +52,7 @@ interface EntryState {
   oteRetracement: '0.62' | '0.705' | '0.75' | null;
   stopLossLevel: '1' | '0.9' | null;
   takeProfitLevel: '0' | '-0.28' | null;
-  riskReward: '1.5R' | '2R' | '3R' | null;
+  riskReward: string | null;
   screenshot: string | null;
   completed: boolean;
 }
@@ -98,51 +98,37 @@ export default function Index() {
   const directionScrollRef = useRef<ScrollView>(null);
   const stageScrollRef = useRef<ScrollView>(null);
   const entryScrollRef = useRef<ScrollView>(null);
-  const contentRef = useRef<View>(null);
+  const scrollViewRefs = {
+    direction: directionScrollRef,
+    stage: stageScrollRef,
+    entry: entryScrollRef
+  };
 
-  // Функция для скролла вверх с разными методами для разных платформ
-  const scrollToTop = () => {
-    // Для мобильных устройств используем несколько методов
-    setTimeout(() => {
-      // Метод 1: Скролл через refs ScrollView
-      switch (activeTab) {
-        case 'direction':
-          directionScrollRef.current?.scrollTo({ y: 0, animated: true });
-          break;
-        case 'stage':
-          stageScrollRef.current?.scrollTo({ y: 0, animated: true });
-          break;
-        case 'entry':
-          entryScrollRef.current?.scrollTo({ y: 0, animated: true });
-          break;
-      }
+  // Функция для скролла вверх с улучшенной логикой
+  const scrollToTop = (tab: TabType) => {
+    const scrollViewRef = scrollViewRefs[tab];
+    
+    if (scrollViewRef.current) {
+      // Множественные попытки скролла для надежности
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 50);
+      
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 150);
+      
+      setTimeout(() => {
+        scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+      }, 300);
+    }
 
-      // Метод 2: Для веба используем window.scrollTo
-      if (Platform.OS === 'web') {
+    // Дополнительно для веба
+    if (Platform.OS === 'web') {
+      setTimeout(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        
-        // Дополнительно скроллим контейнер контента если есть
-        const contentElement = document.querySelector('[data-content="true"]');
-        if (contentElement) {
-          contentElement.scrollTop = 0;
-        }
-      }
-
-      // Метод 3: Для мобильных устройств дополнительно используем requestAnimationFrame
-      requestAnimationFrame(() => {
-        switch (activeTab) {
-          case 'direction':
-            directionScrollRef.current?.scrollTo({ y: 0, animated: true });
-            break;
-          case 'stage':
-            stageScrollRef.current?.scrollTo({ y: 0, animated: true });
-            break;
-          case 'entry':
-            entryScrollRef.current?.scrollTo({ y: 0, animated: true });
-            break;
-        }
-      });
-    }, 100);
+      }, 100);
+    }
   };
 
   useEffect(() => {
@@ -191,11 +177,44 @@ export default function Index() {
 
   // Скролл вверх при изменении активной вкладки
   useEffect(() => {
-    scrollToTop();
+    scrollToTop(activeTab);
   }, [activeTab]);
 
   const saveSetup = async () => {
     console.log('🚀 saveSetup called (noop for now)');
+  };
+
+  // Функция для расчета Risk-Reward Ratio
+  const calculateRiskReward = (): string => {
+    const { oteRetracement, stopLossLevel, takeProfitLevel } = currentSetup.entry;
+    
+    if (!oteRetracement || !stopLossLevel || !takeProfitLevel) {
+      return 'N/A';
+    }
+
+    const entry = parseFloat(oteRetracement);
+    const stopLoss = parseFloat(stopLossLevel);
+    const takeProfit = parseFloat(takeProfitLevel);
+
+    // Расчет риска и вознаграждения
+    const risk = Math.abs(entry - stopLoss);
+    const reward = Math.abs(entry - takeProfit);
+    
+    if (risk === 0) return 'N/A';
+    
+    const rrRatio = reward / risk;
+    return rrRatio.toFixed(2) + 'R';
+  };
+
+  // Функция для получения цвета RR в зависимости от значения
+  const getRRColor = (rr: string) => {
+    if (rr === 'N/A') return '#888';
+    
+    const value = parseFloat(rr);
+    if (value >= 3) return '#1B5E20'; // Отличный RR
+    if (value >= 2) return '#2E7D32'; // Хороший RR
+    if (value >= 1.5) return '#4CAF50'; // Нормальный RR
+    return '#F44336'; // Плохой RR
   };
 
   // Функция для генерации уникального имени файла с временной меткой
@@ -218,6 +237,9 @@ export default function Index() {
         (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
 
       const safe = (v: any) => (v ?? '').toString();
+
+      // Автоматический расчет RR для отчета
+      const calculatedRR = calculateRiskReward();
 
       const html = `
       <html>
@@ -265,7 +287,7 @@ export default function Index() {
           <div class="row"><span class="label">OTE Retracement:</span> <span class="value">${currentSetup.entry.oteRetracement || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Stop Loss:</span> <span class="value">${currentSetup.entry.stopLossLevel || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Take Profit:</span> <span class="value">${currentSetup.entry.takeProfitLevel || 'NOT SET'}</span></div>
-          <div class="row"><span class="label">Risk-Reward:</span> <span class="value">${currentSetup.entry.riskReward || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">Risk-Reward:</span> <span class="value">${calculatedRR}</span></div>
           ${currentSetup.entry.screenshot ? `<img src="${currentSetup.entry.screenshot}" />` : ''}
         </div>
 
@@ -450,7 +472,6 @@ export default function Index() {
            entry.oteRetracement !== null && 
            entry.stopLossLevel !== null && 
            entry.takeProfitLevel !== null && 
-           entry.riskReward !== null &&
            entry.screenshot !== null;
   };
 
@@ -854,168 +875,164 @@ export default function Index() {
     </ScrollView>
   );
 
-  const renderEntrySection = () => (
-    <ScrollView 
-      ref={entryScrollRef}
-      style={styles.sectionContainer} 
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
-    >
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>ENTRY</Text>
-        <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
-      </View>
+  const renderEntrySection = () => {
+    const calculatedRR = calculateRiskReward();
+    const rrColor = getRRColor(calculatedRR);
 
-      <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>High Grade Swing Point</Text>
-        <Text style={styles.checklistSubtitle}>A high/low that swept liquidity or rebalanced a FVG</Text>
-        
-        <CheckboxItem
-          label="High grade swing point identified"
-          checked={currentSetup.entry.highGradeSwingPoint}
-          onPress={(value) => updateEntry('highGradeSwingPoint', value)}
-        />
+    return (
+      <ScrollView 
+        ref={entryScrollRef}
+        style={styles.sectionContainer} 
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>ENTRY</Text>
+          <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
+        </View>
 
-        {currentSetup.entry.highGradeSwingPoint && (
-          <View style={styles.swingPointTypeSection}>
-            <Text style={styles.optionLabel}>Swing Point must fulfill ONE condition:</Text>
-            <View style={styles.optionColumn}>
-              <TouchableOpacity
-                style={[styles.listOption, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOption]}
-                onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'liquidity_sweep' ? null : 'liquidity_sweep')}
-              >
-                <View style={styles.optionWithCheckbox}>
-                  <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedRadio]}>
-                    {currentSetup.entry.swingPointType === 'liquidity_sweep' && <View style={styles.radioDot} />}
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>High Grade Swing Point</Text>
+          <Text style={styles.checklistSubtitle}>A high/low that swept liquidity or rebalanced a FVG</Text>
+          
+          <CheckboxItem
+            label="High grade swing point identified"
+            checked={currentSetup.entry.highGradeSwingPoint}
+            onPress={(value) => updateEntry('highGradeSwingPoint', value)}
+          />
+
+          {currentSetup.entry.highGradeSwingPoint && (
+            <View style={styles.swingPointTypeSection}>
+              <Text style={styles.optionLabel}>Swing Point must fulfill ONE condition:</Text>
+              <View style={styles.optionColumn}>
+                <TouchableOpacity
+                  style={[styles.listOption, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOption]}
+                  onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'liquidity_sweep' ? null : 'liquidity_sweep')}
+                >
+                  <View style={styles.optionWithCheckbox}>
+                    <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedRadio]}>
+                      {currentSetup.entry.swingPointType === 'liquidity_sweep' && <View style={styles.radioDot} />}
+                    </View>
+                    <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOptionText]}>
+                      Swept Liquidity
+                    </Text>
                   </View>
-                  <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOptionText]}>
-                    Swept Liquidity
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.listOption, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOption]}
-                onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'fvg_rebalance' ? null : 'fvg_rebalance')}
-              >
-                <View style={styles.optionWithCheckbox}>
-                  <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedRadio]}>
-                    {currentSetup.entry.swingPointType === 'fvg_rebalance' && <View style={styles.radioDot} />}
+                <TouchableOpacity
+                  style={[styles.listOption, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOption]}
+                  onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'fvg_rebalance' ? null : 'fvg_rebalance')}
+                >
+                  <View style={styles.optionWithCheckbox}>
+                    <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedRadio]}>
+                      {currentSetup.entry.swingPointType === 'fvg_rebalance' && <View style={styles.radioDot} />}
+                    </View>
+                    <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOptionText]}>
+                      Rebalanced a FVG
+                    </Text>
                   </View>
-                  <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOptionText]}>
-                    Rebalanced a FVG
-                  </Text>
-                </View>
-              </TouchableOpacity>
+                </TouchableOpacity>
+              </View>
             </View>
+          )}
+        </View>
+
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>OTE Setup</Text>
+          
+          <CheckboxItem
+            label="OTE level identified and price approaching"
+            checked={currentSetup.entry.oteLevel}
+            onPress={(value) => updateEntry('oteLevel', value)}
+          />
+          
+          <Text style={styles.optionLabel}>OTE Retracement Level:</Text>
+          <View style={styles.optionRow}>
+            {(['0.62', '0.705', '0.75'] as const).map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={[styles.optionButton, currentSetup.entry.oteRetracement === level && styles.selectedOption]}
+                onPress={() => updateEntry('oteRetracement', level)}
+              >
+                <Text style={[styles.optionText, currentSetup.entry.oteRetracement === level && styles.selectedOptionText]}>
+                  {level}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Risk Management</Text>
+          
+          <Text style={styles.optionLabel}>Stop Loss Level:</Text>
+          <View style={styles.optionRow}>
+            {(['1', '0.9'] as const).map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={[styles.optionButton, currentSetup.entry.stopLossLevel === level && styles.selectedOption]}
+                onPress={() => updateEntry('stopLossLevel', level)}
+              >
+                <Text style={[styles.optionText, currentSetup.entry.stopLossLevel === level && styles.selectedOptionText]}>
+                  {level}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          
+          <Text style={styles.optionLabel}>Take Profit Level:</Text>
+          <View style={styles.optionRow}>
+            {(['0', '-0.28'] as const).map((level) => (
+              <TouchableOpacity
+                key={level}
+                style={[styles.optionButton, currentSetup.entry.takeProfitLevel === level && styles.selectedOption]}
+                onPress={() => updateEntry('takeProfitLevel', level)}
+              >
+                <Text style={[styles.optionText, currentSetup.entry.takeProfitLevel === level && styles.selectedOptionText]}>
+                  {level}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.optionLabel}>Risk-Reward Ratio:</Text>
+          <View style={styles.rrDisplay}>
+            <View style={[styles.rrDisplayBox, { backgroundColor: rrColor }]}>
+              <Text style={styles.rrDisplayText}>
+                {calculatedRR}
+              </Text>
+            </View>
+            <Text style={styles.rrHelpText}>
+              Calculated automatically based on Fib levels
+            </Text>
+          </View>
+        </View>
+
+        <View style={styles.tradingReminderSection}>
+          <Text style={styles.reminderTitle}>💡 TRADING REMINDER</Text>
+          <View style={styles.reminderContent}>
+            <Text style={styles.reminderText}>
+              <Text style={styles.reminderBold}>Aim for 1.5R+ trades</Text>
+              {'\n'}Rinse and repeat
+            </Text>
+            <Text style={styles.reminderText}>
+              <Text style={styles.reminderBold}>Entry Formula:</Text>
+              {'\n'}OTE from a high grade swing point
+            </Text>
+          </View>
+        </View>
+
+        {currentSetup.entry.completed && (
+          <View style={styles.completionSection}>
+            <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+            <Text style={styles.completionText}>Entry plan complete - Ready to execute</Text>
           </View>
         )}
-      </View>
 
-      <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>OTE Setup</Text>
-        
-        <CheckboxItem
-          label="OTE level identified and price approaching"
-          checked={currentSetup.entry.oteLevel}
-          onPress={(value) => updateEntry('oteLevel', value)}
-        />
-        
-        <Text style={styles.optionLabel}>OTE Retracement Level:</Text>
-        <View style={styles.optionRow}>
-          {(['0.62', '0.705', '0.75'] as const).map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[styles.optionButton, currentSetup.entry.oteRetracement === level && styles.selectedOption]}
-              onPress={() => updateEntry('oteRetracement', level)}
-            >
-              <Text style={[styles.optionText, currentSetup.entry.oteRetracement === level && styles.selectedOptionText]}>
-                {level}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>Risk Management</Text>
-        
-        <Text style={styles.optionLabel}>Stop Loss Level:</Text>
-        <View style={styles.optionRow}>
-          {(['1', '0.9'] as const).map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[styles.optionButton, currentSetup.entry.stopLossLevel === level && styles.selectedOption]}
-              onPress={() => updateEntry('stopLossLevel', level)}
-            >
-              <Text style={[styles.optionText, currentSetup.entry.stopLossLevel === level && styles.selectedOptionText]}>
-                {level}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        
-        <Text style={styles.optionLabel}>Take Profit Level:</Text>
-        <View style={styles.optionRow}>
-          {(['0', '-0.28'] as const).map((level) => (
-            <TouchableOpacity
-              key={level}
-              style={[styles.optionButton, currentSetup.entry.takeProfitLevel === level && styles.selectedOption]}
-              onPress={() => updateEntry('takeProfitLevel', level)}
-            >
-              <Text style={[styles.optionText, currentSetup.entry.takeProfitLevel === level && styles.selectedOptionText]}>
-                {level}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <Text style={styles.optionLabel}>Risk-Reward Ratio:</Text>
-        <View style={styles.optionRow}>
-          {(['1.5R', '2R', '3R'] as const).map((rr) => (
-            <TouchableOpacity
-              key={rr}
-              style={[
-                styles.rrButton,
-                currentSetup.entry.riskReward === rr && styles.selectedRR,
-                rr === '1.5R' && currentSetup.entry.riskReward === rr && styles.goodRR,
-                rr === '2R' && currentSetup.entry.riskReward === rr && styles.excellentRR,
-                rr === '3R' && currentSetup.entry.riskReward === rr && styles.perfectRR
-              ]}
-              onPress={() => updateEntry('riskReward', rr)}
-            >
-              <Text style={[styles.rrText, currentSetup.entry.riskReward === rr && styles.selectedRRText]}>
-                {rr}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.tradingReminderSection}>
-        <Text style={styles.reminderTitle}>💡 TRADING REMINDER</Text>
-        <View style={styles.reminderContent}>
-          <Text style={styles.reminderText}>
-            <Text style={styles.reminderBold}>Consistent 1.5R-3R trades</Text>
-            {'\n'}Rinse and repeat
-          </Text>
-          <Text style={styles.reminderText}>
-            <Text style={styles.reminderBold}>Entry Formula:</Text>
-            {'\n'}OTE from a high grade swing point
-          </Text>
-        </View>
-      </View>
-
-      {currentSetup.entry.completed && (
-        <View style={styles.completionSection}>
-          <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-          <Text style={styles.completionText}>Entry plan complete - Ready to execute</Text>
-        </View>
-      )}
-
-      <ImageUploadSection section="entry" screenshot={currentSetup.entry.screenshot} />
-    </ScrollView>
-  );
+        <ImageUploadSection section="entry" screenshot={currentSetup.entry.screenshot} />
+      </ScrollView>
+    );
+  };
 
   const getTabContent = () => {
     switch (activeTab) {
@@ -1054,11 +1071,7 @@ export default function Index() {
         {renderTabButton('entry', 'enter-outline', 'Entry')}
       </View>
 
-      <View 
-        ref={contentRef}
-        style={styles.content}
-        data-content="true" // Для веб-селектора
-      >
+      <View style={styles.content}>
         {getTabContent()}
       </View>
     </SafeAreaView>
@@ -1153,6 +1166,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    paddingBottom: 20,
   },
   sectionHeader: {
     paddingVertical: 20,
@@ -1344,39 +1358,29 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4CAF50',
   },
-  rrButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#1a1a1a',
-    borderRadius: 6,
-    marginRight: 8,
+  // Новые стили для автоматического RR
+  rrDisplay: {
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
+    marginVertical: 12,
   },
-  selectedRR: {
-    borderWidth: 2,
+  rrDisplayBox: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    minWidth: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  goodRR: {
-    backgroundColor: '#4CAF50',
-    borderColor: '#4CAF50',
-  },
-  excellentRR: {
-    backgroundColor: '#2E7D32',
-    borderColor: '#2E7D32',
-  },
-  perfectRR: {
-    backgroundColor: '#1B5E20',
-    borderColor: '#1B5E20',
-  },
-  rrText: {
-    color: '#888',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  selectedRRText: {
+  rrDisplayText: {
     color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  rrHelpText: {
+    color: '#888',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
   },
   tradingReminderSection: {
     backgroundColor: '#1a1a2a',
