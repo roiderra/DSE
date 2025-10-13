@@ -50,6 +50,8 @@ interface EntryState {
   stopLossLevel: '1' | '0.9' | null;
   takeProfitLevel: '0' | '-0.28' | null;
   riskReward: string | null;
+  timeZoneSelected: boolean;
+  timeZone: 'LOKZ' | 'NYOKZ' | 'LCKZ' | 'NO_MANS_LAND' | null;
   screenshot: string | null;
   completed: boolean;
 }
@@ -84,6 +86,8 @@ export default function Index() {
       stopLossLevel: null,
       takeProfitLevel: null,
       riskReward: null,
+      timeZoneSelected: false,
+      timeZone: null,
       screenshot: null,
       completed: false
     },
@@ -140,6 +144,8 @@ export default function Index() {
           stopLossLevel: null,
           takeProfitLevel: null,
           riskReward: null,
+          timeZoneSelected: false,
+          timeZone: null,
           screenshot: null,
           completed: false,
         },
@@ -194,6 +200,16 @@ export default function Index() {
 
       const safe = (v: any) => (v ?? '').toString();
 
+      const formatTimeZone = (zone: string | null) => {
+        switch (zone) {
+          case 'LOKZ': return 'London Kill Zone (LOKZ)';
+          case 'NYOKZ': return 'New York Kill Zone (NYOKZ)';
+          case 'LCKZ': return 'London Close Kill Zone (LCKZ)';
+          case 'NO_MANS_LAND': return 'No Man\'s Land';
+          default: return 'NOT SET';
+        }
+      };
+
       const calculatedRR = calculateRiskReward();
 
       const html = `
@@ -229,8 +245,8 @@ export default function Index() {
         <h2>Stage</h2>
         <div class="section">
           <div class="row"><span class="label">Price Condition:</span> <span class="value">${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'NOT SET'}</span></div>
-          <div class="row"><span class="label">15m-5m Displacement:</span> <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span></div>
-          <div class="row"><span class="label">Displacement Type:</span> <span class="value">${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'NOT SET'}</span></div>
+          <div class="row"><span class="label">15m+ Displacement/CISOD:</span> <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span></div>
+          <div class="row"><span class="label">Displacement Type:</span> <span class="value">${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG(PDA)' : 'NOT SET'}</span></div>
           ${currentSetup.stage.screenshot ? `<img src="${currentSetup.stage.screenshot}" />` : ''}
         </div>
 
@@ -243,6 +259,7 @@ export default function Index() {
           <div class="row"><span class="label">Stop Loss:</span> <span class="value">${currentSetup.entry.stopLossLevel || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Take Profit:</span> <span class="value">${currentSetup.entry.takeProfitLevel || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Risk-Reward:</span> <span class="value">${calculatedRR}</span></div>
+          <div class="row"><span class="label">Time Zone:</span> <span class="value">${formatTimeZone(currentSetup.entry.timeZone)}</span></div>
           ${currentSetup.entry.screenshot ? `<img src="${currentSetup.entry.screenshot}" />` : ''}
         </div>
       </body>
@@ -326,6 +343,8 @@ export default function Index() {
           stopLossLevel: null,
           takeProfitLevel: null,
           riskReward: null,
+          timeZoneSelected: false,
+          timeZone: null,
           screenshot: null,
           completed: false,
         },
@@ -412,6 +431,8 @@ export default function Index() {
            entry.oteRetracement !== null && 
            entry.stopLossLevel !== null && 
            entry.takeProfitLevel !== null && 
+           entry.timeZoneSelected &&
+           entry.timeZone !== null &&
            entry.screenshot !== null;
   };
 
@@ -481,7 +502,6 @@ export default function Index() {
           setUploadStatus(prev => ({ ...prev, entry: true }));
         }
         
-        // Hide success message after 3 seconds
         setTimeout(() => {
           setUploadStatus(prev => ({ ...prev, [section]: false }));
         }, 3000);
@@ -706,7 +726,7 @@ export default function Index() {
               isAligned === false ? styles.conflictText : styles.alignedText
             ]}>
               {isAligned === false
-                ? 'Daily and Weekly bias conflict - Review setup'
+                ? 'Daily and Weekly bias conflict carries higher risk - Review setup carefully'
                 : 'Daily and Weekly bias are aligned ✓'}
             </Text>
           </View>
@@ -738,7 +758,7 @@ export default function Index() {
                 {currentSetup.stage.priceCondition === 'pd_array' && <View style={styles.radioDot} />}
               </View>
               <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOptionText]}>
-                Price is at or coming from a 4H+ PDA in line with my bias
+                Price is at or coming from a 4H+ PDA in line with daily Direction
               </Text>
             </View>
           </TouchableOpacity>
@@ -752,7 +772,7 @@ export default function Index() {
                 {currentSetup.stage.priceCondition === 'stops_run' && <View style={styles.radioDot} />}
               </View>
               <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedListOptionText]}>
-                Price made a stops run on PWH/PWL/PDH/PDL in line with my bias
+                Price made a stops run on PWH/PWL/PDH/PDL in line with daily Direction
               </Text>
             </View>
           </TouchableOpacity>
@@ -760,18 +780,17 @@ export default function Index() {
       </View>
 
       <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>2. Displacement Confirmation</Text>
-        <Text style={styles.checklistSubtitle}>15m-5m displacement that causes:</Text>
-        
+        <Text style={styles.checklistTitle}>2. Displacement/CISOD Confirmation</Text>
+                
         <CheckboxItem
-          label="15m-5m displacement occurred"
+          label="15m+ displacement occurred"
           checked={currentSetup.stage.displacement}
           onPress={(value) => updateStage('displacement', value)}
         />
 
         {currentSetup.stage.displacement && (
           <View style={styles.displacementTypeSection}>
-            <Text style={styles.optionLabel}>Displacement Type:</Text>
+            <Text style={styles.optionLabel}>Displacement/CISOD Type:</Text>
             <View style={styles.optionColumn}>
               <TouchableOpacity
                 style={[styles.listOption, currentSetup.stage.displacementType === 'mss' && styles.selectedListOption]}
@@ -796,7 +815,7 @@ export default function Index() {
                     {currentSetup.stage.displacementType === 'fvg_cut' && <View style={styles.radioDot} />}
                   </View>
                   <Text style={[styles.listOptionText, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedListOptionText]}>
-                    Cuts through an opposing FVG
+                    Cuts through an opposing FVG(PDA)
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -826,7 +845,72 @@ export default function Index() {
           <Text style={styles.sectionTitle}>ENTRY</Text>
           <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
         </View>
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Time Zone Indentified</Text>
+          <Text style={styles.checklistSubtitle}>Select the Kill Zone for this setup:</Text>
+          
+          <CheckboxItem
+            label="Time zone selected"
+            checked={currentSetup.entry.timeZoneSelected}
+            onPress={(value) => updateEntry('timeZoneSelected', value)}
+          />
 
+          {currentSetup.entry.timeZoneSelected && (
+            <View style={styles.timeZoneSection}>
+              <Text style={styles.optionLabel}>Select Kill Zone:</Text>
+              <View style={styles.optionColumn}>
+                {(['LOKZ', 'NYOKZ', 'LCKZ', 'NO_MANS_LAND'] as const).map((zone) => (
+                  <TouchableOpacity
+                    key={zone}
+                    style={[
+                      styles.listOption, 
+                      currentSetup.entry.timeZone === zone && styles.selectedListOption,
+                      zone === 'NO_MANS_LAND' && currentSetup.entry.timeZone === zone && styles.warningOption
+                    ]}
+                    onPress={() => updateEntry('timeZone', zone)}
+                  >
+                    <View style={styles.optionWithCheckbox}>
+                      <View style={[
+                        styles.radioButton, 
+                        currentSetup.entry.timeZone === zone && styles.selectedRadio,
+                        zone === 'NO_MANS_LAND' && currentSetup.entry.timeZone === zone && styles.warningRadio
+                      ]}>
+                        {currentSetup.entry.timeZone === zone && <View style={styles.radioDot} />}
+                      </View>
+                      <View style={styles.timeZoneTextContainer}>
+                        <Text style={[
+                          styles.listOptionText, 
+                          currentSetup.entry.timeZone === zone && styles.selectedListOptionText,
+                          zone === 'NO_MANS_LAND' && styles.warningText
+                        ]}>
+                          {zone === 'LOKZ' ? 'London Kill Zone (LOKZ)' : 
+                           zone === 'NYOKZ' ? 'New York Kill Zone (NYOKZ)' : 
+                           zone === 'LCKZ' ? 'London Close Kill Zone (LCKZ)' : 
+                           'No Man\'s Land'}
+                        </Text>
+                        {zone === 'NO_MANS_LAND' && (
+                          <Text style={styles.warningSubtext}>High risk period</Text>
+                        )}
+                      </View>
+                      {zone === 'NO_MANS_LAND' && (
+                        <Ionicons name="warning" size={16} color="#FF9800" style={styles.warningIcon} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {currentSetup.entry.timeZone === 'NO_MANS_LAND' && (
+          <View style={styles.noMansLandWarning}>
+            <Ionicons name="warning" size={20} color="#FF9800" />
+            <Text style={styles.noMansLandWarningText}>
+              Trading in No Man's Land carries higher risk - Review setup carefully
+            </Text>
+          </View>
+        )}
         <View style={styles.checklistSection}>
           <Text style={styles.checklistTitle}>High Grade Swing Point</Text>
           <Text style={styles.checklistSubtitle}>A high/low that swept liquidity or rebalanced a FVG</Text>
@@ -1100,6 +1184,11 @@ const styles = StyleSheet.create({
     top: -2,
     right: -2,
   },
+  lockIcon: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
+  },
   content: {
     flex: 1,
   },
@@ -1287,6 +1376,12 @@ const styles = StyleSheet.create({
   swingPointTypeSection: {
     marginTop: 12,
   },
+  timeZoneSection: {
+    marginTop: 12,
+  },
+  timeZoneTextContainer: {
+    flex: 1,
+  },
   completionSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1357,11 +1452,6 @@ const styles = StyleSheet.create({
   },
   lockedTabText: {
     color: '#444',
-  },
-  lockIcon: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
   },
   imageUploadSection: {
     marginVertical: 20,
@@ -1450,5 +1540,43 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  noMansLandWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    backgroundColor: '#2a1f1a',
+    borderColor: '#FF9800',
+  },
+  noMansLandWarningText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9800',
+    flex: 1,
+  },
+  warningOption: {
+    backgroundColor: '#2a1f1a',
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  warningRadio: {
+    borderColor: '#FF9800',
+  },
+  warningText: {
+    color: '#FF9800',
+    fontWeight: '600',
+  },
+  warningSubtext: {
+    fontSize: 12,
+    color: '#FF9800',
+    marginTop: 2,
+    opacity: 0.8,
+  },
+  warningIcon: {
+    marginLeft: 8,
   },
 });
