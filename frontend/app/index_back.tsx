@@ -91,6 +91,16 @@ export default function Index() {
     updatedAt: new Date().toISOString()
   });
 
+  const [uploadStatus, setUploadStatus] = useState<{
+    direction: boolean;
+    stage: boolean;
+    entry: boolean;
+  }>({
+    direction: false,
+    stage: false,
+    entry: false
+  });
+
   const mainScrollRef = useRef<ScrollView>(null);
 
   const scrollToTop = () => {
@@ -163,7 +173,7 @@ export default function Index() {
     
     if (risk === 0) return 'N/A';
     
-    const rrRatio = reward / risk;
+    const rrRatio = (reward / risk) * 0.9;
     return rrRatio.toFixed(2) + 'R';
   };
 
@@ -175,7 +185,7 @@ export default function Index() {
   const generateReport = async () => {
     try {
       if (!currentSetup.direction.completed || !currentSetup.stage.completed || !currentSetup.entry.completed) {
-        Alert.alert('Требуется завершить все секции', 'Пожалуйста, завершите Direction, Stage и Entry и загрузите скриншоты для каждой секции.');
+        Alert.alert('All Sections Required', 'Please complete Direction, Stage and Entry sections and upload screenshots for each section.');
         return;
       }
 
@@ -204,9 +214,9 @@ export default function Index() {
         </style>
       </head>
       <body>
-        <h1>Forex Trading Setup</h1>
-        <div class="row"><span class="label">Setup:</span> <span class="value">${safe(currentSetup.name)}</span></div>
-        <div class="row"><span class="label">Generated:</span> <span class="value">${new Date().toLocaleString('ru-RU')}</span></div>
+        <h1>Trading Setup</h1>
+        
+        <div class="row"><span class="label">Generated:</span> <span class="value">${new Date().toLocaleString('en-US')}</span></div>
 
         <h2>Direction</h2>
         <div class="section">
@@ -238,7 +248,6 @@ export default function Index() {
       </body>
       </html>`;
 
-      // ✅ Простая генерация PDF и сразу делимся
       const { uri } = await Print.printToFileAsync({ 
         html,
         width: 612,
@@ -251,47 +260,36 @@ export default function Index() {
         }
       });
 
-      console.log('✅ PDF создан:', uri);
+      console.log('✅ PDF created:', uri);
 
-      // Проверяем возможность поделиться
       const canShare = await Sharing.isAvailableAsync();
       if (canShare) {
         await Sharing.shareAsync(uri, {
           mimeType: 'application/pdf',
-          dialogTitle: 'Поделиться торговым отчетом',
+          dialogTitle: 'Share Trading Report',
           UTI: 'com.adobe.pdf'
         });
       } else {
-        Alert.alert('Ошибка', 'Функция sharing недоступна на этом устройстве');
+        Alert.alert('Error', 'Sharing function is not available on this device');
       }
 
       await clearAllData();
       
     } catch (e: any) {
-      console.error('Ошибка генерации PDF:', e);
+      console.error('PDF generation error:', e);
       Alert.alert(
-        'Ошибка генерации отчета', 
-        'Не удалось создать PDF файл. Пожалуйста, проверьте разрешения и попробуйте снова.',
+        'Report Generation Error', 
+        'Failed to create PDF file. Please check permissions and try again.',
         [{ text: 'OK' }]
       );
     }
   };
 
   const handleGenerateReport = async () => {
-    // Дополнительная проверка перед генерацией
-    if (!currentSetup.direction.screenshot || !currentSetup.stage.screenshot || !currentSetup.entry.screenshot) {
-      Alert.alert(
-        'Отсутствуют скриншоты',
-        'Пожалуйста, загрузите скриншоты для всех секций перед генерацией отчета.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
     if (!currentSetup.direction.completed || !currentSetup.stage.completed || !currentSetup.entry.completed) {
       Alert.alert(
-        'Не все секции завершены',
-        'Пожалуйста, завершите заполнение всех секций перед генерацией отчета.',
+        'Not All Sections Completed',
+        'Please complete all sections before generating report.',
         [{ text: 'OK' }]
       );
       return;
@@ -339,7 +337,7 @@ export default function Index() {
       console.log('✅ All data cleared, starting fresh');
     } catch (error) {
       console.error('Error clearing data:', error);
-      Alert.alert('Ошибка', 'Не удалось очистить данные');
+      Alert.alert('Error', 'Failed to clear data');
     }
   };
 
@@ -474,13 +472,19 @@ export default function Index() {
         
         if (section === 'direction') {
           updateDirection('screenshot', base64Image);
+          setUploadStatus(prev => ({ ...prev, direction: true }));
         } else if (section === 'stage') {
           updateStage('screenshot', base64Image);
+          setUploadStatus(prev => ({ ...prev, stage: true }));
         } else if (section === 'entry') {
           updateEntry('screenshot', base64Image);
+          setUploadStatus(prev => ({ ...prev, entry: true }));
         }
         
-        Alert.alert("Success", "Screenshot uploaded successfully!");
+        // Hide success message after 3 seconds
+        setTimeout(() => {
+          setUploadStatus(prev => ({ ...prev, [section]: false }));
+        }, 3000);
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -514,6 +518,13 @@ export default function Index() {
   const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
     <View style={styles.imageUploadSection}>
       <Text style={styles.imageUploadTitle}>📸 Chart Screenshot</Text>
+      
+      {uploadStatus[section] && (
+        <View style={styles.uploadSuccess}>
+          <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+          <Text style={styles.uploadSuccessText}>Screenshot uploaded successfully!</Text>
+        </View>
+      )}
       
       {screenshot ? (
         <View style={styles.imageContainer}>
@@ -977,7 +988,7 @@ export default function Index() {
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
       
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Forex Trading Plan</Text>
+        <Text style={styles.headerTitle}>Trading Plan</Text>
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
@@ -985,7 +996,7 @@ export default function Index() {
             onPress={handleGenerateReport}
           >
             <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
-            <Text style={styles.saveButtonText}>Save & Generate Report</Text>
+            <Text style={styles.saveButtonText}>Generate Report</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1365,6 +1376,22 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 16,
+  },
+  uploadSuccess: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1a2a1a',
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#4CAF50',
+  },
+  uploadSuccessText: {
+    color: '#4CAF50',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
   },
   uploadButton: {
     alignItems: 'center',

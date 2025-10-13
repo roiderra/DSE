@@ -173,7 +173,7 @@ export default function Index() {
     
     if (risk === 0) return 'N/A';
     
-    const rrRatio = reward / risk;
+    const rrRatio = (reward / risk) * 0.9;
     return rrRatio.toFixed(2) + 'R';
   };
 
@@ -214,8 +214,8 @@ export default function Index() {
         </style>
       </head>
       <body>
-        <h1>Forex Trading Setup</h1>
-        <div class="row"><span class="label">Setup:</span> <span class="value">${safe(currentSetup.name)}</span></div>
+        <h1>Trading Setup</h1>
+        
         <div class="row"><span class="label">Generated:</span> <span class="value">${new Date().toLocaleString('en-US')}</span></div>
 
         <h2>Direction</h2>
@@ -286,15 +286,6 @@ export default function Index() {
   };
 
   const handleGenerateReport = async () => {
-    if (!currentSetup.direction.screenshot || !currentSetup.stage.screenshot || !currentSetup.entry.screenshot) {
-      Alert.alert(
-        'Missing Screenshots',
-        'Please upload screenshots for all sections before generating report.',
-        [{ text: 'OK' }]
-      );
-      return;
-    }
-
     if (!currentSetup.direction.completed || !currentSetup.stage.completed || !currentSetup.entry.completed) {
       Alert.alert(
         'Not All Sections Completed',
@@ -997,7 +988,7 @@ export default function Index() {
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
       
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Forex Trading Plan</Text>
+        <Text style={styles.headerTitle}>Trading Plan</Text>
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
@@ -1005,7 +996,7 @@ export default function Index() {
             onPress={handleGenerateReport}
           >
             <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
-            <Text style={styles.saveButtonText}>Save & Generate Report</Text>
+            <Text style={styles.saveButtonText}>Generate Report</Text>
           </TouchableOpacity>
         </View>
       </View>
