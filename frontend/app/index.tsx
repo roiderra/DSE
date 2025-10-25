@@ -30,6 +30,7 @@ interface TradingSetup {
 interface DirectionState {
   weeklyBias: 'bullish' | 'bearish' | null;
   dailyBias: 'higher' | 'lower' | null;
+  pdasIdentified: boolean;
   screenshot: string | null;
   completed: boolean;
 }
@@ -60,6 +61,8 @@ type TabType = 'direction' | 'stage' | 'entry';
 
 const { width, height } = Dimensions.get('window');
 
+const STORAGE_KEY = 'trading_setup_data';
+
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabType>('direction');
   const [currentSetup, setCurrentSetup] = useState<TradingSetup>({
@@ -68,6 +71,7 @@ export default function Index() {
     direction: {
       weeklyBias: null,
       dailyBias: null,
+      pdasIdentified: false,
       screenshot: null,
       completed: false
     },
@@ -113,51 +117,39 @@ export default function Index() {
     }
   };
 
+  // Загрузка данных при запуске
   useEffect(() => {
-    const initFresh = async () => {
+    const loadSavedData = async () => {
       try {
-        await AsyncStorage.clear();
-      } catch (e) {
-        console.log('AsyncStorage clear error', e);
+        const savedData = await AsyncStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          setCurrentSetup(parsedData);
+          console.log('✅ Данные восстановлены из памяти');
+        } else {
+          console.log('📝 Данные не найдены, начинаем с чистого листа');
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке данных:', error);
       }
-      const fresh: TradingSetup = {
-        id: '',
-        name: `Setup ${new Date().toLocaleDateString()}`,
-        direction: {
-          weeklyBias: null,
-          dailyBias: null,
-          screenshot: null,
-          completed: false,
-        },
-        stage: {
-          priceCondition: null,
-          displacement: false,
-          displacementType: null,
-          screenshot: null,
-          completed: false,
-        },
-        entry: {
-          highGradeSwingPoint: false,
-          swingPointType: null,
-          oteLevel: false,
-          oteRetracement: null,
-          stopLossLevel: null,
-          takeProfitLevel: null,
-          riskReward: null,
-          timeZoneSelected: false,
-          timeZone: null,
-          screenshot: null,
-          completed: false,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setCurrentSetup(fresh);
-      setActiveTab('direction');
-      console.log('🎯 Fresh state set - clean start');
     };
-    initFresh();
+
+    loadSavedData();
   }, []);
+
+  // Сохранение данных при изменении
+  useEffect(() => {
+    const saveData = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentSetup));
+        console.log('💾 Данные сохранены');
+      } catch (error) {
+        console.error('Ошибка при сохранении данных:', error);
+      }
+    };
+
+    saveData();
+  }, [currentSetup]);
 
   useEffect(() => {
     scrollToTop();
@@ -238,6 +230,7 @@ export default function Index() {
         <div class="section">
           <div class="row"><span class="label">Weekly Bias:</span> <span class="value">${safe(currentSetup.direction.weeklyBias)?.toUpperCase() || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Daily Bias:</span> <span class="value">${safe(currentSetup.direction.dailyBias)?.toUpperCase() || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">PDAs Identified:</span> <span class="value">${currentSetup.direction.pdasIdentified ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}</span></div>
           <div class="row"><span class="label">Bias Alignment:</span> <span class="value ${isAligned ? 'good' : 'warn'}">${isAligned ? 'ALIGNED ✓' : 'CONFLICT ⚠'}</span></div>
           ${currentSetup.direction.screenshot ? `<img src="${currentSetup.direction.screenshot}" />` : ''}
         </div>
@@ -318,13 +311,14 @@ export default function Index() {
   const clearAllData = async () => {
     try {
       console.log('🧹 Clearing all data...');
-      await AsyncStorage.clear();
+      await AsyncStorage.removeItem(STORAGE_KEY);
       const freshSetup: TradingSetup = {
         id: '',
         name: `Setup ${new Date().toLocaleDateString()}`,
         direction: {
           weeklyBias: null,
           dailyBias: null,
+          pdasIdentified: false,
           screenshot: null,
           completed: false,
         },
@@ -358,6 +352,24 @@ export default function Index() {
       console.error('Error clearing data:', error);
       Alert.alert('Error', 'Failed to clear data');
     }
+  };
+
+  const handleClearData = () => {
+    Alert.alert(
+      "Clear All Data",
+      "Are you sure you want to clear all data and start over? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: clearAllData
+        }
+      ]
+    );
   };
 
   const updateDirection = (field: keyof DirectionState, value: any) => {
@@ -414,6 +426,7 @@ export default function Index() {
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
            direction.dailyBias !== null &&
+           direction.pdasIdentified &&
            direction.screenshot !== null;
   };
 
@@ -660,7 +673,18 @@ export default function Index() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIRECTION</Text>
-          <Text style={styles.sectionSubtitle}>Identify closest M/W/D PDAs</Text>
+          <Text style={styles.sectionSubtitle}>Market structure analysis and bias identification</Text>
+        </View>
+
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Market Structure Analysis</Text>
+          <Text style={styles.checklistSubtitle}>Identify closest Monthly/Weekly/Daily PD Arrays:</Text>
+          
+          <CheckboxItem
+            label="Closest M/W/D PDAs identified"
+            checked={currentSetup.direction.pdasIdentified}
+            onPress={(value) => updateDirection('pdasIdentified', value)}
+          />
         </View>
 
         <View style={styles.checklistSection}>
@@ -883,9 +907,9 @@ export default function Index() {
                           currentSetup.entry.timeZone === zone && styles.selectedListOptionText,
                           zone === 'NO_MANS_LAND' && styles.warningText
                         ]}>
-                          {zone === 'LOKZ' ? 'London Kill Zone (LOKZ)' : 
-                           zone === 'NYOKZ' ? 'New York Kill Zone (NYOKZ)' : 
-                           zone === 'LCKZ' ? 'London Close Kill Zone (LCKZ)' : 
+                          {zone === 'LOKZ' ? 'London Kill Zone (LOKZ) 2am-5am' : 
+                           zone === 'NYOKZ' ? 'New York Kill Zone (NYOKZ) 7am-10am' : 
+                           zone === 'LCKZ' ? 'London Close Kill Zone (LCKZ) 10am-12pm' : 
                            'No Man\'s Land'}
                         </Text>
                         {zone === 'NO_MANS_LAND' && (
@@ -1076,10 +1100,17 @@ export default function Index() {
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
+            style={styles.clearButton} 
+            onPress={handleClearData}
+          >
+            <Ionicons name="refresh" size={16} color="#FF6B6B" />
+            <Text style={styles.clearButtonText}>Clear</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={styles.saveButton} 
             onPress={handleGenerateReport}
           >
-            <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
+            <Ionicons name="document-text-outline" size={16} color="#00D4FF" />
             <Text style={styles.saveButtonText}>Generate Report</Text>
           </TouchableOpacity>
         </View>
@@ -1105,7 +1136,9 @@ export default function Index() {
   );
 }
 
+// Стили остаются без изменений (такие же как в предыдущем коде)
 const styles = StyleSheet.create({
+  // ... все стили из предыдущего кода
   container: {
     flex: 1,
     backgroundColor: '#0a0a0a',
@@ -1139,10 +1172,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
-    alignSelf: 'flex-start',
   },
   saveButtonText: {
     color: '#00D4FF',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1a1a',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  clearButtonText: {
+    color: '#FF6B6B',
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '600',

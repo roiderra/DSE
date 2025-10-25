@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +31,7 @@ interface TradingSetup {
 interface DirectionState {
   weeklyBias: 'bullish' | 'bearish' | null;
   dailyBias: 'higher' | 'lower' | null;
+  pdasIdentified: boolean;
   screenshot: string | null;
   completed: boolean;
 }
@@ -50,6 +52,8 @@ interface EntryState {
   stopLossLevel: '1' | '0.9' | null;
   takeProfitLevel: '0' | '-0.28' | null;
   riskReward: string | null;
+  timeZoneSelected: boolean;
+  timeZone: 'LOKZ' | 'NYOKZ' | 'LCKZ' | 'NO_MANS_LAND' | null;
   screenshot: string | null;
   completed: boolean;
 }
@@ -57,6 +61,8 @@ interface EntryState {
 type TabType = 'direction' | 'stage' | 'entry';
 
 const { width, height } = Dimensions.get('window');
+
+const STORAGE_KEY = 'trading_setup_data';
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabType>('direction');
@@ -66,6 +72,7 @@ export default function Index() {
     direction: {
       weeklyBias: null,
       dailyBias: null,
+      pdasIdentified: false,
       screenshot: null,
       completed: false
     },
@@ -84,6 +91,8 @@ export default function Index() {
       stopLossLevel: null,
       takeProfitLevel: null,
       riskReward: null,
+      timeZoneSelected: false,
+      timeZone: null,
       screenshot: null,
       completed: false
     },
@@ -101,6 +110,8 @@ export default function Index() {
     entry: false
   });
 
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+
   const mainScrollRef = useRef<ScrollView>(null);
 
   const scrollToTop = () => {
@@ -109,49 +120,39 @@ export default function Index() {
     }
   };
 
+  // Загрузка данных при запуске
   useEffect(() => {
-    const initFresh = async () => {
+    const loadSavedData = async () => {
       try {
-        await AsyncStorage.clear();
-      } catch (e) {
-        console.log('AsyncStorage clear error', e);
+        const savedData = await AsyncStorage.getItem(STORAGE_KEY);
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          setCurrentSetup(parsedData);
+          console.log('✅ Данные восстановлены из памяти');
+        } else {
+          console.log('📝 Данные не найдены, начинаем с чистого листа');
+        }
+      } catch (error) {
+        console.error('Ошибка при загрузке данных:', error);
       }
-      const fresh: TradingSetup = {
-        id: '',
-        name: `Setup ${new Date().toLocaleDateString()}`,
-        direction: {
-          weeklyBias: null,
-          dailyBias: null,
-          screenshot: null,
-          completed: false,
-        },
-        stage: {
-          priceCondition: null,
-          displacement: false,
-          displacementType: null,
-          screenshot: null,
-          completed: false,
-        },
-        entry: {
-          highGradeSwingPoint: false,
-          swingPointType: null,
-          oteLevel: false,
-          oteRetracement: null,
-          stopLossLevel: null,
-          takeProfitLevel: null,
-          riskReward: null,
-          screenshot: null,
-          completed: false,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      setCurrentSetup(fresh);
-      setActiveTab('direction');
-      console.log('🎯 Fresh state set - clean start');
     };
-    initFresh();
+
+    loadSavedData();
   }, []);
+
+  // Сохранение данных при изменении
+  useEffect(() => {
+    const saveData = async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentSetup));
+        console.log('💾 Данные сохранены');
+      } catch (error) {
+        console.error('Ошибка при сохранении данных:', error);
+      }
+    };
+
+    saveData();
+  }, [currentSetup]);
 
   useEffect(() => {
     scrollToTop();
@@ -194,6 +195,16 @@ export default function Index() {
 
       const safe = (v: any) => (v ?? '').toString();
 
+      const formatTimeZone = (zone: string | null) => {
+        switch (zone) {
+          case 'LOKZ': return 'London Kill Zone (LOKZ)';
+          case 'NYOKZ': return 'New York Kill Zone (NYOKZ)';
+          case 'LCKZ': return 'London Close Kill Zone (LCKZ)';
+          case 'NO_MANS_LAND': return 'No Man\'s Land';
+          default: return 'NOT SET';
+        }
+      };
+
       const calculatedRR = calculateRiskReward();
 
       const html = `
@@ -222,6 +233,7 @@ export default function Index() {
         <div class="section">
           <div class="row"><span class="label">Weekly Bias:</span> <span class="value">${safe(currentSetup.direction.weeklyBias)?.toUpperCase() || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Daily Bias:</span> <span class="value">${safe(currentSetup.direction.dailyBias)?.toUpperCase() || 'NOT SET'}</span></div>
+          <div class="row"><span class="label">PDAs Identified:</span> <span class="value">${currentSetup.direction.pdasIdentified ? 'IDENTIFIED ✓' : 'NOT IDENTIFIED ✗'}</span></div>
           <div class="row"><span class="label">Bias Alignment:</span> <span class="value ${isAligned ? 'good' : 'warn'}">${isAligned ? 'ALIGNED ✓' : 'CONFLICT ⚠'}</span></div>
           ${currentSetup.direction.screenshot ? `<img src="${currentSetup.direction.screenshot}" />` : ''}
         </div>
@@ -229,8 +241,8 @@ export default function Index() {
         <h2>Stage</h2>
         <div class="section">
           <div class="row"><span class="label">Price Condition:</span> <span class="value">${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'NOT SET'}</span></div>
-          <div class="row"><span class="label">15m-5m Displacement:</span> <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span></div>
-          <div class="row"><span class="label">Displacement Type:</span> <span class="value">${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG' : 'NOT SET'}</span></div>
+          <div class="row"><span class="label">15m+ Displacement/CISOD:</span> <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span></div>
+          <div class="row"><span class="label">Displacement Type:</span> <span class="value">${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG(PDA)' : 'NOT SET'}</span></div>
           ${currentSetup.stage.screenshot ? `<img src="${currentSetup.stage.screenshot}" />` : ''}
         </div>
 
@@ -243,6 +255,7 @@ export default function Index() {
           <div class="row"><span class="label">Stop Loss:</span> <span class="value">${currentSetup.entry.stopLossLevel || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Take Profit:</span> <span class="value">${currentSetup.entry.takeProfitLevel || 'NOT SET'}</span></div>
           <div class="row"><span class="label">Risk-Reward:</span> <span class="value">${calculatedRR}</span></div>
+          <div class="row"><span class="label">Time Zone:</span> <span class="value">${formatTimeZone(currentSetup.entry.timeZone)}</span></div>
           ${currentSetup.entry.screenshot ? `<img src="${currentSetup.entry.screenshot}" />` : ''}
         </div>
       </body>
@@ -301,13 +314,14 @@ export default function Index() {
   const clearAllData = async () => {
     try {
       console.log('🧹 Clearing all data...');
-      await AsyncStorage.clear();
+      await AsyncStorage.removeItem(STORAGE_KEY);
       const freshSetup: TradingSetup = {
         id: '',
         name: `Setup ${new Date().toLocaleDateString()}`,
         direction: {
           weeklyBias: null,
           dailyBias: null,
+          pdasIdentified: false,
           screenshot: null,
           completed: false,
         },
@@ -326,6 +340,8 @@ export default function Index() {
           stopLossLevel: null,
           takeProfitLevel: null,
           riskReward: null,
+          timeZoneSelected: false,
+          timeZone: null,
           screenshot: null,
           completed: false,
         },
@@ -339,6 +355,24 @@ export default function Index() {
       console.error('Error clearing data:', error);
       Alert.alert('Error', 'Failed to clear data');
     }
+  };
+
+  const handleClearData = () => {
+    Alert.alert(
+      "Clear All Data",
+      "Are you sure you want to clear all data and start over? This action cannot be undone.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Clear All",
+          style: "destructive",
+          onPress: clearAllData
+        }
+      ]
+    );
   };
 
   const updateDirection = (field: keyof DirectionState, value: any) => {
@@ -395,6 +429,7 @@ export default function Index() {
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
            direction.dailyBias !== null &&
+           direction.pdasIdentified &&
            direction.screenshot !== null;
   };
 
@@ -412,6 +447,8 @@ export default function Index() {
            entry.oteRetracement !== null && 
            entry.stopLossLevel !== null && 
            entry.takeProfitLevel !== null && 
+           entry.timeZoneSelected &&
+           entry.timeZone !== null &&
            entry.screenshot !== null;
   };
 
@@ -481,7 +518,6 @@ export default function Index() {
           setUploadStatus(prev => ({ ...prev, entry: true }));
         }
         
-        // Hide success message after 3 seconds
         setTimeout(() => {
           setUploadStatus(prev => ({ ...prev, [section]: false }));
         }, 3000);
@@ -528,31 +564,35 @@ export default function Index() {
       
       {screenshot ? (
         <View style={styles.imageContainer}>
-          <ScrollView 
-            horizontal={true} 
-            showsHorizontalScrollIndicator={true}
-            style={styles.imageScrollView}
+          <TouchableOpacity 
+            style={styles.imagePreviewContainer}
+            onPress={() => setZoomedImage(screenshot)}
+            activeOpacity={0.8}
           >
             <Image 
               source={{ uri: screenshot }} 
               style={styles.uploadedImage}
               resizeMode="contain"
             />
-          </ScrollView>
-          <View style={styles.imageOverlay}>
+            <View style={styles.zoomHint}>
+              <Ionicons name="expand" size={20} color="#fff" />
+              <Text style={styles.zoomHintText}>Tap to zoom</Text>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.imageActions}>
             <TouchableOpacity
-              style={styles.imageButton}
+              style={styles.imageActionButton}
               onPress={() => pickImage(section)}
             >
               <Ionicons name="camera" size={16} color="#fff" />
-              <Text style={styles.imageButtonText}>Replace</Text>
+              <Text style={styles.imageActionButtonText}>Replace</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.imageButton, styles.removeButton]}
+              style={[styles.imageActionButton, styles.removeButton]}
               onPress={() => removeImage(section)}
             >
               <Ionicons name="trash" size={16} color="#fff" />
-              <Text style={styles.imageButtonText}>Remove</Text>
+              <Text style={styles.imageActionButtonText}>Remove</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -640,7 +680,18 @@ export default function Index() {
       <View style={styles.sectionContainer}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>DIRECTION</Text>
-          <Text style={styles.sectionSubtitle}>Identify closest M/W/D PDAs</Text>
+          <Text style={styles.sectionSubtitle}>Market structure analysis and bias identification</Text>
+        </View>
+
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Market Structure Analysis</Text>
+          <Text style={styles.checklistSubtitle}>Identify closest Monthly/Weekly/Daily PD Arrays:</Text>
+          
+          <CheckboxItem
+            label="Closest M/W/D PDAs identified"
+            checked={currentSetup.direction.pdasIdentified}
+            onPress={(value) => updateDirection('pdasIdentified', value)}
+          />
         </View>
 
         <View style={styles.checklistSection}>
@@ -706,7 +757,7 @@ export default function Index() {
               isAligned === false ? styles.conflictText : styles.alignedText
             ]}>
               {isAligned === false
-                ? 'Daily and Weekly bias conflict - Review setup'
+                ? 'Daily and Weekly bias conflict carries higher risk - Review setup carefully'
                 : 'Daily and Weekly bias are aligned ✓'}
             </Text>
           </View>
@@ -738,7 +789,7 @@ export default function Index() {
                 {currentSetup.stage.priceCondition === 'pd_array' && <View style={styles.radioDot} />}
               </View>
               <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOptionText]}>
-                Price is at or coming from a 4H+ PDA in line with my bias
+                Price is at or coming from a 4H+ PDA in line with daily Direction
               </Text>
             </View>
           </TouchableOpacity>
@@ -752,7 +803,7 @@ export default function Index() {
                 {currentSetup.stage.priceCondition === 'stops_run' && <View style={styles.radioDot} />}
               </View>
               <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedListOptionText]}>
-                Price made a stops run on PWH/PWL/PDH/PDL in line with my bias
+                Price made a stops run on PWH/PWL/PDH/PDL in line with daily Direction
               </Text>
             </View>
           </TouchableOpacity>
@@ -760,18 +811,17 @@ export default function Index() {
       </View>
 
       <View style={styles.checklistSection}>
-        <Text style={styles.checklistTitle}>2. Displacement Confirmation</Text>
-        <Text style={styles.checklistSubtitle}>15m-5m displacement that causes:</Text>
-        
+        <Text style={styles.checklistTitle}>2. Displacement/CISOD Confirmation</Text>
+                
         <CheckboxItem
-          label="15m-5m displacement occurred"
+          label="15m+ displacement occurred"
           checked={currentSetup.stage.displacement}
           onPress={(value) => updateStage('displacement', value)}
         />
 
         {currentSetup.stage.displacement && (
           <View style={styles.displacementTypeSection}>
-            <Text style={styles.optionLabel}>Displacement Type:</Text>
+            <Text style={styles.optionLabel}>Displacement/CISOD Type:</Text>
             <View style={styles.optionColumn}>
               <TouchableOpacity
                 style={[styles.listOption, currentSetup.stage.displacementType === 'mss' && styles.selectedListOption]}
@@ -796,7 +846,7 @@ export default function Index() {
                     {currentSetup.stage.displacementType === 'fvg_cut' && <View style={styles.radioDot} />}
                   </View>
                   <Text style={[styles.listOptionText, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedListOptionText]}>
-                    Cuts through an opposing FVG
+                    Cuts through an opposing FVG(PDA)
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -826,7 +876,72 @@ export default function Index() {
           <Text style={styles.sectionTitle}>ENTRY</Text>
           <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
         </View>
+        <View style={styles.checklistSection}>
+          <Text style={styles.checklistTitle}>Time Zone Indentified</Text>
+          <Text style={styles.checklistSubtitle}>Select the Kill Zone for this setup:</Text>
+          
+          <CheckboxItem
+            label="Time zone selected"
+            checked={currentSetup.entry.timeZoneSelected}
+            onPress={(value) => updateEntry('timeZoneSelected', value)}
+          />
 
+          {currentSetup.entry.timeZoneSelected && (
+            <View style={styles.timeZoneSection}>
+              <Text style={styles.optionLabel}>Select Kill Zone:</Text>
+              <View style={styles.optionColumn}>
+                {(['LOKZ', 'NYOKZ', 'LCKZ', 'NO_MANS_LAND'] as const).map((zone) => (
+                  <TouchableOpacity
+                    key={zone}
+                    style={[
+                      styles.listOption, 
+                      currentSetup.entry.timeZone === zone && styles.selectedListOption,
+                      zone === 'NO_MANS_LAND' && currentSetup.entry.timeZone === zone && styles.warningOption
+                    ]}
+                    onPress={() => updateEntry('timeZone', zone)}
+                  >
+                    <View style={styles.optionWithCheckbox}>
+                      <View style={[
+                        styles.radioButton, 
+                        currentSetup.entry.timeZone === zone && styles.selectedRadio,
+                        zone === 'NO_MANS_LAND' && currentSetup.entry.timeZone === zone && styles.warningRadio
+                      ]}>
+                        {currentSetup.entry.timeZone === zone && <View style={styles.radioDot} />}
+                      </View>
+                      <View style={styles.timeZoneTextContainer}>
+                        <Text style={[
+                          styles.listOptionText, 
+                          currentSetup.entry.timeZone === zone && styles.selectedListOptionText,
+                          zone === 'NO_MANS_LAND' && styles.warningText
+                        ]}>
+                          {zone === 'LOKZ' ? 'London Kill Zone (LOKZ) 2am-5am' : 
+                           zone === 'NYOKZ' ? 'New York Kill Zone (NYOKZ) 7am-10am' : 
+                           zone === 'LCKZ' ? 'London Close Kill Zone (LCKZ) 10am-12pm' : 
+                           'No Man\'s Land'}
+                        </Text>
+                        {zone === 'NO_MANS_LAND' && (
+                          <Text style={styles.warningSubtext}>High risk period</Text>
+                        )}
+                      </View>
+                      {zone === 'NO_MANS_LAND' && (
+                        <Ionicons name="warning" size={16} color="#FF9800" style={styles.warningIcon} />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+        </View>
+
+        {currentSetup.entry.timeZone === 'NO_MANS_LAND' && (
+          <View style={styles.noMansLandWarning}>
+            <Ionicons name="warning" size={20} color="#FF9800" />
+            <Text style={styles.noMansLandWarningText}>
+              Trading in No Man's Land carries higher risk - Review setup carefully
+            </Text>
+          </View>
+        )}
         <View style={styles.checklistSection}>
           <Text style={styles.checklistTitle}>High Grade Swing Point</Text>
           <Text style={styles.checklistSubtitle}>A high/low that swept liquidity or rebalanced a FVG</Text>
@@ -992,10 +1107,17 @@ export default function Index() {
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
+            style={styles.clearButton} 
+            onPress={handleClearData}
+          >
+            <Ionicons name="refresh" size={16} color="#FF6B6B" />
+            <Text style={styles.clearButtonText}>Clear</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={styles.saveButton} 
             onPress={handleGenerateReport}
           >
-            <Ionicons name="document-text-outline" size={20} color="#00D4FF" />
+            <Ionicons name="document-text-outline" size={16} color="#00D4FF" />
             <Text style={styles.saveButtonText}>Generate Report</Text>
           </TouchableOpacity>
         </View>
@@ -1017,6 +1139,35 @@ export default function Index() {
           {getTabContent()}
         </ScrollView>
       </View>
+
+      {/* Modal для увеличенного просмотра скриншотов */}
+      <Modal
+        visible={!!zoomedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setZoomedImage(null)}
+      >
+        <View style={styles.zoomOverlay}>
+          <TouchableOpacity 
+            style={styles.zoomBackground}
+            activeOpacity={1}
+            onPress={() => setZoomedImage(null)}
+          />
+          <View style={styles.zoomContainer}>
+            <Image 
+              source={{ uri: zoomedImage! }} 
+              style={styles.zoomedImage}
+              resizeMode="contain"
+            />
+            <TouchableOpacity 
+              style={styles.closeZoomButton}
+              onPress={() => setZoomedImage(null)}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -1055,10 +1206,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 6,
-    alignSelf: 'flex-start',
   },
   saveButtonText: {
     color: '#00D4FF',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  clearButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1a1a',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  clearButtonText: {
+    color: '#FF6B6B',
     marginLeft: 6,
     fontSize: 14,
     fontWeight: '600',
@@ -1099,6 +1263,11 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -2,
     right: -2,
+  },
+  lockIcon: {
+    position: 'absolute',
+    top: -2,
+    left: -2,
   },
   content: {
     flex: 1,
@@ -1287,6 +1456,12 @@ const styles = StyleSheet.create({
   swingPointTypeSection: {
     marginTop: 12,
   },
+  timeZoneSection: {
+    marginTop: 12,
+  },
+  timeZoneTextContainer: {
+    flex: 1,
+  },
   completionSection: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1358,11 +1533,7 @@ const styles = StyleSheet.create({
   lockedTabText: {
     color: '#444',
   },
-  lockIcon: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-  },
+  // Стили для улучшенного отображения скриншотов
   imageUploadSection: {
     marginVertical: 20,
     padding: 16,
@@ -1415,26 +1586,27 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   imageContainer: {
-    position: 'relative',
     borderRadius: 8,
     overflow: 'hidden',
-    maxHeight: 400,
+    backgroundColor: '#0a0a0a',
   },
-  imageScrollView: {
-    flex: 1,
+  imagePreviewContainer: {
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    position: 'relative',
   },
   uploadedImage: {
-    width: width - 64,
-    minHeight: 200,
+    width: '100%',
+    height: '100%',
   },
-  imageOverlay: {
+  zoomHint: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  imageButton: {
+    bottom: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -1443,12 +1615,102 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     gap: 4,
   },
-  removeButton: {
-    backgroundColor: 'rgba(244, 67, 54, 0.8)',
-  },
-  imageButtonText: {
+  zoomHintText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  imageActions: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 8,
+  },
+  imageActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    gap: 6,
+  },
+  removeButton: {
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+  },
+  imageActionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Стили для модального окна с увеличенным изображением
+  zoomOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  zoomContainer: {
+    width: '95%',
+    height: '80%',
+    position: 'relative',
+  },
+  zoomedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeZoomButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  noMansLandWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginVertical: 8,
+    borderWidth: 1,
+    backgroundColor: '#2a1f1a',
+    borderColor: '#FF9800',
+  },
+  noMansLandWarningText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FF9800',
+    flex: 1,
+  },
+  warningOption: {
+    backgroundColor: '#2a1f1a',
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  warningRadio: {
+    borderColor: '#FF9800',
+  },
+  warningText: {
+    color: '#FF9800',
+    fontWeight: '600',
+  },
+  warningSubtext: {
+    fontSize: 12,
+    color: '#FF9800',
+    marginTop: 2,
+    opacity: 0.8,
+  },
+  warningIcon: {
+    marginLeft: 8,
   },
 });
