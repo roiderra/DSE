@@ -34,15 +34,19 @@
           "resizeMode": "contain",
           "backgroundColor": "#000"
         }
-      ]
+      ],
+      "expo-font",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
+      "router": {},
       "eas": {
-        "projectId": "ccd1c455-37dc-4e78-a86a-bc0b912cf377"
+        "projectId": "89f19140-5d1a-411f-8aec-adec60366c96"
       }
-    }
+    },
+    "owner": "rodiondji"
   }
 }

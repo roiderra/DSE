@@ -9,6 +9,7 @@ import {
   Alert,
   Image,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -108,6 +109,9 @@ export default function Index() {
     stage: false,
     entry: false
   });
+
+  const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [imageOrientation, setImageOrientation] = useState<'portrait' | 'landscape'>('portrait');
 
   const mainScrollRef = useRef<ScrollView>(null);
 
@@ -355,21 +359,7 @@ export default function Index() {
   };
 
   const handleClearData = () => {
-    Alert.alert(
-      "Clear All Data",
-      "Are you sure you want to clear all data and start over? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Clear All",
-          style: "destructive",
-          onPress: clearAllData
-        }
-      ]
-    );
+    clearAllData();
   };
 
   const updateDirection = (field: keyof DirectionState, value: any) => {
@@ -504,6 +494,14 @@ export default function Index() {
       if (!result.canceled && result.assets[0].base64) {
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
         
+        // Определяем ориентацию изображения
+        const img = new Image();
+        img.src = base64Image;
+        img.onload = () => {
+          const orientation = img.width > img.height ? 'landscape' : 'portrait';
+          setImageOrientation(orientation);
+        };
+        
         if (section === 'direction') {
           updateDirection('screenshot', base64Image);
           setUploadStatus(prev => ({ ...prev, direction: true }));
@@ -526,26 +524,13 @@ export default function Index() {
   };
 
   const removeImage = (section: 'direction' | 'stage' | 'entry') => {
-    Alert.alert(
-      "Remove Screenshot",
-      "Are you sure you want to remove this screenshot?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Remove", 
-          style: "destructive",
-          onPress: () => {
-            if (section === 'direction') {
-              updateDirection('screenshot', null);
-            } else if (section === 'stage') {
-              updateStage('screenshot', null);
-            } else if (section === 'entry') {
-              updateEntry('screenshot', null);
-            }
-          }
-        }
-      ]
-    );
+    if (section === 'direction') {
+      updateDirection('screenshot', null);
+    } else if (section === 'stage') {
+      updateStage('screenshot', null);
+    } else if (section === 'entry') {
+      updateEntry('screenshot', null);
+    }
   };
 
   const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
@@ -561,31 +546,35 @@ export default function Index() {
       
       {screenshot ? (
         <View style={styles.imageContainer}>
-          <ScrollView 
-            horizontal={true} 
-            showsHorizontalScrollIndicator={true}
-            style={styles.imageScrollView}
+          <TouchableOpacity 
+            style={styles.imagePreviewContainer}
+            onPress={() => setZoomedImage(screenshot)}
+            activeOpacity={0.8}
           >
             <Image 
               source={{ uri: screenshot }} 
               style={styles.uploadedImage}
               resizeMode="contain"
             />
-          </ScrollView>
-          <View style={styles.imageOverlay}>
+            <View style={styles.zoomHint}>
+              <Ionicons name="expand" size={20} color="#fff" />
+              <Text style={styles.zoomHintText}>Tap to zoom</Text>
+            </View>
+          </TouchableOpacity>
+          <View style={styles.imageActions}>
             <TouchableOpacity
-              style={styles.imageButton}
+              style={styles.imageActionButton}
               onPress={() => pickImage(section)}
             >
               <Ionicons name="camera" size={16} color="#fff" />
-              <Text style={styles.imageButtonText}>Replace</Text>
+              <Text style={styles.imageActionButtonText}>Replace</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.imageButton, styles.removeButton]}
+              style={[styles.imageActionButton, styles.removeButton]}
               onPress={() => removeImage(section)}
             >
               <Ionicons name="trash" size={16} color="#fff" />
-              <Text style={styles.imageButtonText}>Remove</Text>
+              <Text style={styles.imageActionButtonText}>Remove</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -1100,18 +1089,18 @@ export default function Index() {
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.clearButton} 
-            onPress={handleClearData}
-          >
-            <Ionicons name="refresh" size={16} color="#FF6B6B" />
-            <Text style={styles.clearButtonText}>Clear</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
             style={styles.saveButton} 
             onPress={handleGenerateReport}
           >
             <Ionicons name="document-text-outline" size={16} color="#00D4FF" />
             <Text style={styles.saveButtonText}>Generate Report</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.clearButton} 
+            onPress={handleClearData}
+          >
+            <Ionicons name="refresh" size={16} color="#FF6B6B" />
+            <Text style={styles.clearButtonText}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1132,13 +1121,46 @@ export default function Index() {
           {getTabContent()}
         </ScrollView>
       </View>
+
+      {/* Modal для увеличенного просмотра скриншотов */}
+      <Modal
+        visible={!!zoomedImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setZoomedImage(null)}
+      >
+        <View style={styles.zoomOverlay}>
+          <TouchableOpacity 
+            style={styles.zoomBackground}
+            activeOpacity={1}
+            onPress={() => setZoomedImage(null)}
+          />
+          <View style={[
+            styles.zoomContainer,
+            imageOrientation === 'landscape' && styles.landscapeZoomContainer
+          ]}>
+            <Image 
+              source={{ uri: zoomedImage! }} 
+              style={[
+                styles.zoomedImage,
+                imageOrientation === 'landscape' && styles.landscapeZoomedImage
+              ]}
+              resizeMode="contain"
+            />
+            <TouchableOpacity 
+              style={styles.closeZoomButton}
+              onPress={() => setZoomedImage(null)}
+            >
+              <Ionicons name="close" size={24} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
-// Стили остаются без изменений (такие же как в предыдущем коде)
 const styles = StyleSheet.create({
-  // ... все стили из предыдущего кода
   container: {
     flex: 1,
     backgroundColor: '#0a0a0a',
@@ -1499,6 +1521,7 @@ const styles = StyleSheet.create({
   lockedTabText: {
     color: '#444',
   },
+  // Стили для улучшенного отображения скриншотов
   imageUploadSection: {
     marginVertical: 20,
     padding: 16,
@@ -1551,26 +1574,27 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   imageContainer: {
-    position: 'relative',
     borderRadius: 8,
     overflow: 'hidden',
-    maxHeight: 400,
+    backgroundColor: '#0a0a0a',
   },
-  imageScrollView: {
-    flex: 1,
+  imagePreviewContainer: {
+    height: 300,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#0a0a0a',
+    borderBottomWidth: 1,
+    borderBottomColor: '#333',
+    position: 'relative',
   },
   uploadedImage: {
-    width: width - 64,
-    minHeight: 200,
+    width: '100%',
+    height: '100%',
   },
-  imageOverlay: {
+  zoomHint: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  imageButton: {
+    bottom: 12,
+    right: 12,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
@@ -1579,13 +1603,73 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     gap: 4,
   },
-  removeButton: {
-    backgroundColor: 'rgba(244, 67, 54, 0.8)',
-  },
-  imageButtonText: {
+  zoomHintText: {
     color: '#fff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  imageActions: {
+    flexDirection: 'row',
+    padding: 12,
+    gap: 8,
+  },
+  imageActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0, 212, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 6,
+    gap: 6,
+  },
+  removeButton: {
+    backgroundColor: 'rgba(244, 67, 54, 0.2)',
+  },
+  imageActionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  // Стили для модального окна с увеличенным изображением
+  zoomOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  zoomContainer: {
+    width: '95%',
+    height: '80%',
+    position: 'relative',
+  },
+  landscapeZoomContainer: {
+    width: '90%',
+    height: '60%',
+  },
+  zoomedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  landscapeZoomedImage: {
+    width: '100%',
+    height: '100%',
+  },
+  closeZoomButton: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    padding: 8,
   },
   noMansLandWarning: {
     flexDirection: 'row',
