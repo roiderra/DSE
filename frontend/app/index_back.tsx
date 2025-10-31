@@ -197,8 +197,8 @@ export default function Index() {
 
       const formatTimeZone = (zone: string | null) => {
         switch (zone) {
-          case 'LOKZ': return 'London Kill Zone (LOKZ)';
-          case 'NYOKZ': return 'New York Kill Zone (NYOKZ)';
+          case 'LOKZ': return 'London Open Kill Zone (LOKZ)';
+          case 'NYOKZ': return 'New York Open Kill Zone (NYOKZ)';
           case 'LCKZ': return 'London Close Kill Zone (LCKZ)';
           case 'NO_MANS_LAND': return 'No Man\'s Land';
           default: return 'NOT SET';
@@ -358,21 +358,7 @@ export default function Index() {
   };
 
   const handleClearData = () => {
-    Alert.alert(
-      "Clear All Data",
-      "Are you sure you want to clear all data and start over? This action cannot be undone.",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Clear All",
-          style: "destructive",
-          onPress: clearAllData
-        }
-      ]
-    );
+    clearAllData();
   };
 
   const updateDirection = (field: keyof DirectionState, value: any) => {
@@ -529,26 +515,13 @@ export default function Index() {
   };
 
   const removeImage = (section: 'direction' | 'stage' | 'entry') => {
-    Alert.alert(
-      "Remove Screenshot",
-      "Are you sure you want to remove this screenshot?",
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Remove", 
-          style: "destructive",
-          onPress: () => {
-            if (section === 'direction') {
-              updateDirection('screenshot', null);
-            } else if (section === 'stage') {
-              updateStage('screenshot', null);
-            } else if (section === 'entry') {
-              updateEntry('screenshot', null);
-            }
-          }
-        }
-      ]
-    );
+    if (section === 'direction') {
+      updateDirection('screenshot', null);
+    } else if (section === 'stage') {
+      updateStage('screenshot', null);
+    } else if (section === 'entry') {
+      updateEntry('screenshot', null);
+    }
   };
 
   const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
@@ -662,6 +635,47 @@ export default function Index() {
         {checked && <Ionicons name="checkmark" size={16} color="#1a1a1a" />}
       </View>
       <Text style={[styles.checkboxLabel, checked && styles.checkedLabel]}>{label}</Text>
+    </TouchableOpacity>
+  );
+
+  const OptionItem = ({ 
+    label, 
+    selected, 
+    onPress, 
+    isWarning = false 
+  }: { 
+    label: string; 
+    selected: boolean; 
+    onPress: () => void;
+    isWarning?: boolean;
+  }) => (
+    <TouchableOpacity
+      style={[
+        styles.listOption, 
+        selected && styles.selectedListOption,
+        isWarning && selected && styles.warningOption
+      ]}
+      onPress={onPress}
+    >
+      <View style={styles.optionWithCheckbox}>
+        <View style={[
+          styles.radioButton, 
+          selected && styles.selectedRadio,
+          isWarning && selected && styles.warningRadio
+        ]}>
+          {selected && <View style={styles.radioDot} />}
+        </View>
+        <Text style={[
+          styles.listOptionText, 
+          selected && styles.selectedListOptionText,
+          isWarning && styles.warningText
+        ]}>
+          {label}
+        </Text>
+        {isWarning && (
+          <Ionicons name="warning" size={16} color="#FF9800" style={styles.warningIcon} />
+        )}
+      </View>
     </TouchableOpacity>
   );
 
@@ -780,33 +794,17 @@ export default function Index() {
         <Text style={styles.checklistSubtitle}>Select ONE of the following conditions:</Text>
         
         <View style={styles.optionColumn}>
-          <TouchableOpacity
-            style={[styles.listOption, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOption]}
+          <OptionItem
+            label="Price is at or coming from a 4H+ PDA in line with daily Direction"
+            selected={currentSetup.stage.priceCondition === 'pd_array'}
             onPress={() => updateStage('priceCondition', currentSetup.stage.priceCondition === 'pd_array' ? null : 'pd_array')}
-          >
-            <View style={styles.optionWithCheckbox}>
-              <View style={[styles.radioButton, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedRadio]}>
-                {currentSetup.stage.priceCondition === 'pd_array' && <View style={styles.radioDot} />}
-              </View>
-              <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'pd_array' && styles.selectedListOptionText]}>
-                Price is at or coming from a 4H+ PDA in line with daily Direction
-              </Text>
-            </View>
-          </TouchableOpacity>
+          />
 
-          <TouchableOpacity
-            style={[styles.listOption, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedListOption]}
+          <OptionItem
+            label="Price made a stops run on PWH/PWL/PDH/PDL in line with daily Direction"
+            selected={currentSetup.stage.priceCondition === 'stops_run'}
             onPress={() => updateStage('priceCondition', currentSetup.stage.priceCondition === 'stops_run' ? null : 'stops_run')}
-          >
-            <View style={styles.optionWithCheckbox}>
-              <View style={[styles.radioButton, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedRadio]}>
-                {currentSetup.stage.priceCondition === 'stops_run' && <View style={styles.radioDot} />}
-              </View>
-              <Text style={[styles.listOptionText, currentSetup.stage.priceCondition === 'stops_run' && styles.selectedListOptionText]}>
-                Price made a stops run on PWH/PWL/PDH/PDL in line with daily Direction
-              </Text>
-            </View>
-          </TouchableOpacity>
+          />
         </View>
       </View>
 
@@ -823,33 +821,17 @@ export default function Index() {
           <View style={styles.displacementTypeSection}>
             <Text style={styles.optionLabel}>Displacement/CISOD Type:</Text>
             <View style={styles.optionColumn}>
-              <TouchableOpacity
-                style={[styles.listOption, currentSetup.stage.displacementType === 'mss' && styles.selectedListOption]}
+              <OptionItem
+                label="Market Structure Shift (MSS)"
+                selected={currentSetup.stage.displacementType === 'mss'}
                 onPress={() => updateStage('displacementType', currentSetup.stage.displacementType === 'mss' ? null : 'mss')}
-              >
-                <View style={styles.optionWithCheckbox}>
-                  <View style={[styles.radioButton, currentSetup.stage.displacementType === 'mss' && styles.selectedRadio]}>
-                    {currentSetup.stage.displacementType === 'mss' && <View style={styles.radioDot} />}
-                  </View>
-                  <Text style={[styles.listOptionText, currentSetup.stage.displacementType === 'mss' && styles.selectedListOptionText]}>
-                    Market Structure Shift (MSS)
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              />
 
-              <TouchableOpacity
-                style={[styles.listOption, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedListOption]}
+              <OptionItem
+                label="Cuts through an opposing FVG(PDA)"
+                selected={currentSetup.stage.displacementType === 'fvg_cut'}
                 onPress={() => updateStage('displacementType', currentSetup.stage.displacementType === 'fvg_cut' ? null : 'fvg_cut')}
-              >
-                <View style={styles.optionWithCheckbox}>
-                  <View style={[styles.radioButton, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedRadio]}>
-                    {currentSetup.stage.displacementType === 'fvg_cut' && <View style={styles.radioDot} />}
-                  </View>
-                  <Text style={[styles.listOptionText, currentSetup.stage.displacementType === 'fvg_cut' && styles.selectedListOptionText]}>
-                    Cuts through an opposing FVG(PDA)
-                  </Text>
-                </View>
-              </TouchableOpacity>
+              />
             </View>
           </View>
         )}
@@ -876,8 +858,9 @@ export default function Index() {
           <Text style={styles.sectionTitle}>ENTRY</Text>
           <Text style={styles.sectionSubtitle}>OTE from a high grade swing point</Text>
         </View>
+
         <View style={styles.checklistSection}>
-          <Text style={styles.checklistTitle}>Time Zone Indentified</Text>
+          <Text style={styles.checklistTitle}>Time Zone Identified</Text>
           <Text style={styles.checklistSubtitle}>Select the Kill Zone for this setup:</Text>
           
           <CheckboxItem
@@ -890,46 +873,34 @@ export default function Index() {
             <View style={styles.timeZoneSection}>
               <Text style={styles.optionLabel}>Select Kill Zone:</Text>
               <View style={styles.optionColumn}>
-                {(['LOKZ', 'NYOKZ', 'LCKZ', 'NO_MANS_LAND'] as const).map((zone) => (
-                  <TouchableOpacity
-                    key={zone}
-                    style={[
-                      styles.listOption, 
-                      currentSetup.entry.timeZone === zone && styles.selectedListOption,
-                      zone === 'NO_MANS_LAND' && currentSetup.entry.timeZone === zone && styles.warningOption
-                    ]}
-                    onPress={() => updateEntry('timeZone', zone)}
-                  >
-                    <View style={styles.optionWithCheckbox}>
-                      <View style={[
-                        styles.radioButton, 
-                        currentSetup.entry.timeZone === zone && styles.selectedRadio,
-                        zone === 'NO_MANS_LAND' && currentSetup.entry.timeZone === zone && styles.warningRadio
-                      ]}>
-                        {currentSetup.entry.timeZone === zone && <View style={styles.radioDot} />}
-                      </View>
-                      <View style={styles.timeZoneTextContainer}>
-                        <Text style={[
-                          styles.listOptionText, 
-                          currentSetup.entry.timeZone === zone && styles.selectedListOptionText,
-                          zone === 'NO_MANS_LAND' && styles.warningText
-                        ]}>
-                          {zone === 'LOKZ' ? 'London Kill Zone (LOKZ) 2am-5am' : 
-                           zone === 'NYOKZ' ? 'New York Kill Zone (NYOKZ) 7am-10am' : 
-                           zone === 'LCKZ' ? 'London Close Kill Zone (LCKZ) 10am-12pm' : 
-                           'No Man\'s Land'}
-                        </Text>
-                        {zone === 'NO_MANS_LAND' && (
-                          <Text style={styles.warningSubtext}>High risk period</Text>
-                        )}
-                      </View>
-                      {zone === 'NO_MANS_LAND' && (
-                        <Ionicons name="warning" size={16} color="#FF9800" style={styles.warningIcon} />
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                <OptionItem
+                  label="London Open Kill Zone (LOKZ) 2am-5am"
+                  selected={currentSetup.entry.timeZone === 'LOKZ'}
+                  onPress={() => updateEntry('timeZone', 'LOKZ')}
+                />
+
+                <OptionItem
+                  label="New York Open Kill Zone (NYOKZ) 7am-10am"
+                  selected={currentSetup.entry.timeZone === 'NYOKZ'}
+                  onPress={() => updateEntry('timeZone', 'NYOKZ')}
+                />
+
+                <OptionItem
+                  label="London Close Kill Zone (LCKZ) 10am-12pm"
+                  selected={currentSetup.entry.timeZone === 'LCKZ'}
+                  onPress={() => updateEntry('timeZone', 'LCKZ')}
+                />
+
+                <OptionItem
+                  label="No Man's Land"
+                  selected={currentSetup.entry.timeZone === 'NO_MANS_LAND'}
+                  onPress={() => updateEntry('timeZone', 'NO_MANS_LAND')}
+                  isWarning={true}
+                />
               </View>
+              {currentSetup.entry.timeZone === 'NO_MANS_LAND' && (
+                <Text style={styles.warningSubtext}>High risk period</Text>
+              )}
             </View>
           )}
         </View>
@@ -942,6 +913,7 @@ export default function Index() {
             </Text>
           </View>
         )}
+
         <View style={styles.checklistSection}>
           <Text style={styles.checklistTitle}>High Grade Swing Point</Text>
           <Text style={styles.checklistSubtitle}>A high/low that swept liquidity or rebalanced a FVG</Text>
@@ -956,33 +928,17 @@ export default function Index() {
             <View style={styles.swingPointTypeSection}>
               <Text style={styles.optionLabel}>Swing Point must fulfill ONE condition:</Text>
               <View style={styles.optionColumn}>
-                <TouchableOpacity
-                  style={[styles.listOption, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOption]}
+                <OptionItem
+                  label="Swept Liquidity"
+                  selected={currentSetup.entry.swingPointType === 'liquidity_sweep'}
                   onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'liquidity_sweep' ? null : 'liquidity_sweep')}
-                >
-                  <View style={styles.optionWithCheckbox}>
-                    <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedRadio]}>
-                      {currentSetup.entry.swingPointType === 'liquidity_sweep' && <View style={styles.radioDot} />}
-                    </View>
-                    <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'liquidity_sweep' && styles.selectedListOptionText]}>
-                      Swept Liquidity
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                />
 
-                <TouchableOpacity
-                  style={[styles.listOption, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOption]}
+                <OptionItem
+                  label="Rebalanced a FVG"
+                  selected={currentSetup.entry.swingPointType === 'fvg_rebalance'}
                   onPress={() => updateEntry('swingPointType', currentSetup.entry.swingPointType === 'fvg_rebalance' ? null : 'fvg_rebalance')}
-                >
-                  <View style={styles.optionWithCheckbox}>
-                    <View style={[styles.radioButton, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedRadio]}>
-                      {currentSetup.entry.swingPointType === 'fvg_rebalance' && <View style={styles.radioDot} />}
-                    </View>
-                    <Text style={[styles.listOptionText, currentSetup.entry.swingPointType === 'fvg_rebalance' && styles.selectedListOptionText]}>
-                      Rebalanced a FVG
-                    </Text>
-                  </View>
-                </TouchableOpacity>
+                />
               </View>
             </View>
           )}
@@ -1107,18 +1063,18 @@ export default function Index() {
         <Text style={styles.setupName}>{currentSetup.name}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
-            style={styles.clearButton} 
-            onPress={handleClearData}
-          >
-            <Ionicons name="refresh" size={16} color="#FF6B6B" />
-            <Text style={styles.clearButtonText}>Clear</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
             style={styles.saveButton} 
             onPress={handleGenerateReport}
           >
             <Ionicons name="document-text-outline" size={16} color="#00D4FF" />
             <Text style={styles.saveButtonText}>Generate Report</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.clearButton} 
+            onPress={handleClearData}
+          >
+            <Ionicons name="refresh" size={16} color="#FF6B6B" />
+            <Text style={styles.clearButtonText}>Clear</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -1389,10 +1345,35 @@ const styles = StyleSheet.create({
     color: '#ccc',
     fontSize: 14,
     lineHeight: 20,
+    flex: 1,
   },
   selectedListOptionText: {
     color: '#1a1a1a',
     fontWeight: '600',
+  },
+  optionWithCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  radioButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#555',
+    marginRight: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedRadio: {
+    borderColor: '#00D4FF',
+  },
+  radioDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#00D4FF',
   },
   bullishOption: {
     backgroundColor: '#4CAF50',
@@ -1420,35 +1401,13 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     fontSize: 14,
     fontWeight: '600',
+    flex: 1,
   },
   conflictText: {
     color: '#FF9800',
   },
   alignedText: {
     color: '#4CAF50',
-  },
-  radioButton: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#555',
-    marginRight: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedRadio: {
-    borderColor: '#00D4FF',
-  },
-  radioDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#00D4FF',
-  },
-  optionWithCheckbox: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   displacementTypeSection: {
     marginTop: 12,
@@ -1458,9 +1417,6 @@ const styles = StyleSheet.create({
   },
   timeZoneSection: {
     marginTop: 12,
-  },
-  timeZoneTextContainer: {
-    flex: 1,
   },
   completionSection: {
     flexDirection: 'row',
@@ -1707,8 +1663,9 @@ const styles = StyleSheet.create({
   warningSubtext: {
     fontSize: 12,
     color: '#FF9800',
-    marginTop: 2,
+    marginTop: 8,
     opacity: 0.8,
+    fontStyle: 'italic',
   },
   warningIcon: {
     marginLeft: 8,
