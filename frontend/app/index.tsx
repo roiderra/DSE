@@ -111,8 +111,11 @@ export default function Index() {
   });
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [imageScale, setImageScale] = useState(1);
 
   const mainScrollRef = useRef<ScrollView>(null);
+  const zoomScrollRef = useRef<ScrollView>(null);
+  const lastTapRef = useRef(0);
 
   const scrollToTop = () => {
     if (mainScrollRef.current) {
@@ -524,6 +527,26 @@ export default function Index() {
     }
   };
 
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      setImageScale(prev => prev === 1 ? 2 : 1);
+    }
+    lastTapRef.current = now;
+  };
+
+  const resetZoom = () => {
+    setImageScale(1);
+    if (zoomScrollRef.current) {
+      zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
+    }
+  };
+
+  const closeZoomModal = () => {
+    resetZoom();
+    setZoomedImage(null);
+  };
+
   const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
     <View style={styles.imageUploadSection}>
       <Text style={styles.imageUploadTitle}>📸 Chart Screenshot</Text>
@@ -547,10 +570,7 @@ export default function Index() {
               style={styles.uploadedImage}
               resizeMode="contain"
             />
-            <View style={styles.zoomHint}>
-              <Ionicons name="expand" size={20} color="#fff" />
-              <Text style={styles.zoomHintText}>Tap to zoom</Text>
-            </View>
+            
           </TouchableOpacity>
           <View style={styles.imageActions}>
             <TouchableOpacity
@@ -898,9 +918,7 @@ export default function Index() {
                   isWarning={true}
                 />
               </View>
-              {currentSetup.entry.timeZone === 'NO_MANS_LAND' && (
-                <Text style={styles.warningSubtext}>High risk period</Text>
-              )}
+              
             </View>
           )}
         </View>
@@ -1096,31 +1114,65 @@ export default function Index() {
         </ScrollView>
       </View>
 
-      {/* Modal для увеличенного просмотра скриншотов */}
+      {/* Modal для увеличенного просмотра скриншотов с настоящим зумом */}
       <Modal
         visible={!!zoomedImage}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setZoomedImage(null)}
+        onRequestClose={closeZoomModal}
       >
         <View style={styles.zoomOverlay}>
           <TouchableOpacity 
             style={styles.zoomBackground}
             activeOpacity={1}
-            onPress={() => setZoomedImage(null)}
+            onPress={closeZoomModal}
           />
           <View style={styles.zoomContainer}>
-            <Image 
-              source={{ uri: zoomedImage! }} 
-              style={styles.zoomedImage}
-              resizeMode="contain"
-            />
+            <ScrollView
+              ref={zoomScrollRef}
+              style={styles.zoomScrollView}
+              maximumZoomScale={3}
+              minimumZoomScale={1}
+              showsHorizontalScrollIndicator={true}
+              showsVerticalScrollIndicator={true}
+              contentContainerStyle={styles.zoomScrollContent}
+            >
+              <TouchableOpacity 
+                style={styles.zoomImageTouchable}
+                activeOpacity={1}
+                onPress={() => {
+                  const now = Date.now();
+                  if (now - lastTapRef.current < 300) {
+                    handleDoubleTap();
+                  }
+                  lastTapRef.current = now;
+                }}
+              >
+                <Image 
+                  source={{ uri: zoomedImage! }} 
+                  style={[
+                    styles.zoomedImage,
+                    { transform: [{ scale: imageScale }] }
+                  ]}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </ScrollView>
+            
             <TouchableOpacity 
               style={styles.closeZoomButton}
-              onPress={() => setZoomedImage(null)}
+              onPress={closeZoomModal}
             >
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
+            
+            
+            
+            <View style={styles.zoomControls}>
+              <Text style={styles.zoomHintText}>
+                {imageScale > 1 ? 'Double tap to zoom out' : 'Double tap to zoom 2x'}
+              </Text>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1600,10 +1652,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Стили для модального окна с увеличенным изображением
+  // Стили для модального окна с увеличенным изображением и двойным тапом
   zoomOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1615,21 +1667,60 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   zoomContainer: {
-    width: '95%',
-    height: '80%',
-    position: 'relative',
-  },
-  zoomedImage: {
     width: '100%',
     height: '100%',
+    position: 'relative',
+  },
+  zoomScrollView: {
+    flex: 1,
+  },
+  zoomScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomImageTouchable: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  zoomedImage: {
+    width: Dimensions.get('window').width - 40,
+    height: Dimensions.get('window').height - 40,
   },
   closeZoomButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 50,
+    right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 20,
     padding: 8,
+    zIndex: 10,
+  },
+  resetZoomButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  resetZoomText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  zoomControls: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   noMansLandWarning: {
     flexDirection: 'row',

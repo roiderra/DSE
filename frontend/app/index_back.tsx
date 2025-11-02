@@ -111,8 +111,11 @@ export default function Index() {
   });
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
+  const [zoomScale, setZoomScale] = useState(1);
 
   const mainScrollRef = useRef<ScrollView>(null);
+  const zoomScrollRef = useRef<ScrollView>(null);
+  const lastTapRef = useRef(0);
 
   const scrollToTop = () => {
     if (mainScrollRef.current) {
@@ -197,8 +200,8 @@ export default function Index() {
 
       const formatTimeZone = (zone: string | null) => {
         switch (zone) {
-          case 'LOKZ': return 'London Open Kill Zone (LOKZ)';
-          case 'NYOKZ': return 'New York Open Kill Zone (NYOKZ)';
+          case 'LOKZ': return 'London Kill Zone (LOKZ)';
+          case 'NYOKZ': return 'New York Kill Zone (NYOKZ)';
           case 'LCKZ': return 'London Close Kill Zone (LCKZ)';
           case 'NO_MANS_LAND': return 'No Man\'s Land';
           default: return 'NOT SET';
@@ -522,6 +525,66 @@ export default function Index() {
     } else if (section === 'entry') {
       updateEntry('screenshot', null);
     }
+  };
+
+  const handleDoubleTap = () => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      if (zoomScale === 1) {
+        setZoomScale(2);
+        setTimeout(() => {
+          if (zoomScrollRef.current) {
+            zoomScrollRef.current.scrollTo({
+              x: (width * 2 - width) / 2,
+              y: (height * 2 - height) / 2,
+              animated: true
+            });
+          }
+        }, 100);
+      } else {
+        setZoomScale(1);
+        if (zoomScrollRef.current) {
+          zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
+        }
+      }
+    }
+    lastTapRef.current = now;
+  };
+
+  const handleZoomScroll = (event: any) => {
+    const { contentSize, contentOffset, layoutMeasurement } = event.nativeEvent;
+    const scale = Math.max(
+      contentSize.width / layoutMeasurement.width,
+      contentSize.height / layoutMeasurement.height
+    );
+    setZoomScale(scale);
+  };
+
+  const resetZoom = () => {
+    setZoomScale(1);
+    if (zoomScrollRef.current) {
+      zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
+    }
+  };
+
+  const zoomTo = (scale: number) => {
+    setZoomScale(scale);
+    if (scale > 1 && zoomScrollRef.current) {
+      setTimeout(() => {
+        zoomScrollRef.current?.scrollTo({
+          x: (width * scale - width) / 2,
+          y: (height * scale - height) / 2,
+          animated: true
+        });
+      }, 100);
+    } else if (scale === 1 && zoomScrollRef.current) {
+      zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
+    }
+  };
+
+  const closeZoomModal = () => {
+    resetZoom();
+    setZoomedImage(null);
   };
 
   const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
@@ -874,13 +937,13 @@ export default function Index() {
               <Text style={styles.optionLabel}>Select Kill Zone:</Text>
               <View style={styles.optionColumn}>
                 <OptionItem
-                  label="London Open Kill Zone (LOKZ) 2am-5am"
+                  label="London Kill Zone (LOKZ) 2am-5am"
                   selected={currentSetup.entry.timeZone === 'LOKZ'}
                   onPress={() => updateEntry('timeZone', 'LOKZ')}
                 />
 
                 <OptionItem
-                  label="New York Open Kill Zone (NYOKZ) 7am-10am"
+                  label="New York Kill Zone (NYOKZ) 7am-10am"
                   selected={currentSetup.entry.timeZone === 'NYOKZ'}
                   onPress={() => updateEntry('timeZone', 'NYOKZ')}
                 />
@@ -1096,31 +1159,86 @@ export default function Index() {
         </ScrollView>
       </View>
 
-      {/* Modal для увеличенного просмотра скриншотов */}
+      {/* Modal для увеличенного просмотра скриншотов с улучшенным зумом */}
       <Modal
         visible={!!zoomedImage}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setZoomedImage(null)}
+        onRequestClose={closeZoomModal}
       >
         <View style={styles.zoomOverlay}>
           <TouchableOpacity 
             style={styles.zoomBackground}
             activeOpacity={1}
-            onPress={() => setZoomedImage(null)}
+            onPress={closeZoomModal}
           />
           <View style={styles.zoomContainer}>
-            <Image 
-              source={{ uri: zoomedImage! }} 
-              style={styles.zoomedImage}
-              resizeMode="contain"
-            />
+            <ScrollView
+              ref={zoomScrollRef}
+              style={styles.zoomScrollView}
+              maximumZoomScale={3}
+              minimumZoomScale={1}
+              showsHorizontalScrollIndicator={true}
+              showsVerticalScrollIndicator={true}
+              onScroll={handleZoomScroll}
+              scrollEventThrottle={16}
+              contentContainerStyle={styles.zoomScrollContent}
+            >
+              <TouchableOpacity 
+                style={styles.zoomImageTouchable}
+                activeOpacity={1}
+                onPress={handleDoubleTap}
+              >
+                <Image 
+                  source={{ uri: zoomedImage! }} 
+                  style={[
+                    styles.zoomedImage,
+                    { 
+                      width: width * zoomScale, 
+                      height: height * zoomScale 
+                    }
+                  ]}
+                  resizeMode="contain"
+                />
+              </TouchableOpacity>
+            </ScrollView>
+            
             <TouchableOpacity 
               style={styles.closeZoomButton}
-              onPress={() => setZoomedImage(null)}
+              onPress={closeZoomModal}
             >
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.zoomButton}
+              onPress={() => zoomTo(zoomScale === 1 ? 2 : 1)}
+            >
+              <Ionicons name={zoomScale > 1 ? "search-outline" : "search"} size={20} color="#fff" />
+              <Text style={styles.zoomButtonText}>
+                {zoomScale > 1 ? 'Zoom Out' : 'Zoom 2x'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.resetZoomButton}
+              onPress={resetZoom}
+            >
+              <Ionicons name="refresh" size={16} color="#fff" />
+              <Text style={styles.resetZoomText}>Reset</Text>
+            </TouchableOpacity>
+            
+            <View style={styles.zoomControls}>
+              <Text style={styles.zoomHintText}>
+                {zoomScale > 1 
+                  ? 'Double tap to zoom out • Pinch to zoom • Drag to move' 
+                  : 'Double tap to zoom 2x • Pinch to zoom'
+                }
+              </Text>
+              <Text style={styles.zoomScaleText}>
+                Zoom: {zoomScale.toFixed(1)}x
+              </Text>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1489,7 +1607,6 @@ const styles = StyleSheet.create({
   lockedTabText: {
     color: '#444',
   },
-  // Стили для улучшенного отображения скриншотов
   imageUploadSection: {
     marginVertical: 20,
     padding: 16,
@@ -1600,10 +1717,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Стили для модального окна с увеличенным изображением
   zoomOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    backgroundColor: 'rgba(0, 0, 0, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -1615,21 +1731,88 @@ const styles = StyleSheet.create({
     bottom: 0,
   },
   zoomContainer: {
-    width: '95%',
-    height: '80%',
-    position: 'relative',
-  },
-  zoomedImage: {
     width: '100%',
     height: '100%',
+    position: 'relative',
+  },
+  zoomScrollView: {
+    flex: 1,
+  },
+  zoomScrollContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomImageTouchable: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomedImage: {
+    // Размеры вычисляются динамически
   },
   closeZoomButton: {
     position: 'absolute',
-    top: 10,
-    right: 10,
+    top: 50,
+    right: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 20,
     padding: 8,
+    zIndex: 10,
+  },
+  zoomButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  zoomButtonText: {
+    color: '#fff',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  resetZoomButton: {
+    position: 'absolute',
+    top: 100,
+    left: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  resetZoomText: {
+    color: '#fff',
+    marginLeft: 6,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  zoomControls: {
+    position: 'absolute',
+    bottom: 30,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingVertical: 10,
+  },
+  zoomHintText: {
+    color: '#fff',
+    fontSize: 14,
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  zoomScaleText: {
+    color: '#00D4FF',
+    fontSize: 12,
+    fontWeight: '600',
   },
   noMansLandWarning: {
     flexDirection: 'row',
