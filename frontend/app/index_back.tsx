@@ -30,7 +30,7 @@ interface TradingSetup {
 
 interface DirectionState {
   weeklyBias: 'bullish' | 'bearish' | null;
-  dailyBias: 'higher' | 'lower' | null;
+  dailyBias: 'higher' | 'lower' | 'not_sure' | null;
   pdasIdentified: boolean;
   screenshot: string | null;
   completed: boolean;
@@ -40,6 +40,7 @@ interface StageState {
   priceCondition: 'pd_array' | 'stops_run' | null;
   displacement: boolean;
   displacementType: 'mss' | 'fvg_cut' | null;
+  noIofed: boolean;
   screenshot: string | null;
   completed: boolean;
 }
@@ -63,43 +64,47 @@ type TabType = 'direction' | 'stage' | 'entry';
 const { width, height } = Dimensions.get('window');
 
 const STORAGE_KEY = 'trading_setup_data';
+const LOCK_STORAGE_KEY = 'app_lock_until';
+
+// Функция для создания чистого setup
+const createFreshSetup = (): TradingSetup => ({
+  id: '',
+  name: `Setup ${new Date().toLocaleDateString()}`,
+  direction: {
+    weeklyBias: null,
+    dailyBias: null,
+    pdasIdentified: false,
+    screenshot: null,
+    completed: false
+  },
+  stage: {
+    priceCondition: null,
+    displacement: false,
+    displacementType: null,
+    noIofed: false,
+    screenshot: null,
+    completed: false
+  },
+  entry: {
+    highGradeSwingPoint: false,
+    swingPointType: null,
+    oteLevel: false,
+    oteRetracement: null,
+    stopLossLevel: null,
+    takeProfitLevel: null,
+    riskReward: null,
+    timeZoneSelected: false,
+    timeZone: null,
+    screenshot: null,
+    completed: false
+  },
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString()
+});
 
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabType>('direction');
-  const [currentSetup, setCurrentSetup] = useState<TradingSetup>({
-    id: '',
-    name: `Setup ${new Date().toLocaleDateString()}`,
-    direction: {
-      weeklyBias: null,
-      dailyBias: null,
-      pdasIdentified: false,
-      screenshot: null,
-      completed: false
-    },
-    stage: {
-      priceCondition: null,
-      displacement: false,
-      displacementType: null,
-      screenshot: null,
-      completed: false
-    },
-    entry: {
-      highGradeSwingPoint: false,
-      swingPointType: null,
-      oteLevel: false,
-      oteRetracement: null,
-      stopLossLevel: null,
-      takeProfitLevel: null,
-      riskReward: null,
-      timeZoneSelected: false,
-      timeZone: null,
-      screenshot: null,
-      completed: false
-    },
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  });
-
+  const [currentSetup, setCurrentSetup] = useState<TradingSetup>(createFreshSetup());
   const [uploadStatus, setUploadStatus] = useState<{
     direction: boolean;
     stage: boolean;
@@ -111,7 +116,10 @@ export default function Index() {
   });
 
   const [zoomedImage, setZoomedImage] = useState<string | null>(null);
-  const [zoomScale, setZoomScale] = useState(1);
+  const [imageScale, setImageScale] = useState(1);
+  const [isAppLocked, setIsAppLocked] = useState(false);
+  const [lockUntil, setLockUntil] = useState<Date | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
 
   const mainScrollRef = useRef<ScrollView>(null);
   const zoomScrollRef = useRef<ScrollView>(null);
@@ -123,9 +131,107 @@ export default function Index() {
     }
   };
 
-  // Загрузка данных при запуске
+  // Функция для расчета оставшегося времени
+  const calculateTimeLeft = () => {
+    if (!lockUntil) return '';
+    
+    const now = new Date();
+    const difference = lockUntil.getTime() - now.getTime();
+    
+    if (difference <= 0) {
+      return '00:00:00';
+    }
+    
+    const hours = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((difference % (1000 * 60)) / 1000);
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Функция для проверки и установки блокировки
+  const checkAndSetLock = async (dailyBias: 'higher' | 'lower' | 'not_sure' | null) => {
+    if (dailyBias === 'not_sure') {
+      // Блокируем до следующего дня (00:00 следующего дня)
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      
+      setIsAppLocked(true);
+      setLockUntil(tomorrow);
+      setTimeLeft(calculateTimeLeft());
+      
+      // Сохраняем в AsyncStorage
+      await AsyncStorage.setItem(LOCK_STORAGE_KEY, tomorrow.toISOString());
+      
+      // НЕТ АЛЕРТА - сразу показываем экран блокировки
+    } else {
+      setIsAppLocked(false);
+      setLockUntil(null);
+      await AsyncStorage.removeItem(LOCK_STORAGE_KEY);
+    }
+  };
+
+  // Обновляем таймер каждую секунду
+  useEffect(() => {
+    if (isAppLocked && lockUntil) {
+      const timer = setInterval(() => {
+        const newTimeLeft = calculateTimeLeft();
+        setTimeLeft(newTimeLeft);
+        
+        // Если время вышло, разблокируем приложение
+        if (newTimeLeft === '00:00:00') {
+          clearInterval(timer);
+          handleLockExpired();
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [isAppLocked, lockUntil]);
+
+  // Обработка истечения блокировки
+  const handleLockExpired = async () => {
+    console.log('🔓 Lock expired, resetting app...');
+    await AsyncStorage.multiRemove([STORAGE_KEY, LOCK_STORAGE_KEY]);
+    setIsAppLocked(false);
+    setLockUntil(null);
+    setCurrentSetup(createFreshSetup());
+    setActiveTab('direction');
+  };
+
+  // Проверяем блокировку при загрузке приложения
+  useEffect(() => {
+    const checkLockStatus = async () => {
+      try {
+        const lockUntilString = await AsyncStorage.getItem(LOCK_STORAGE_KEY);
+        if (lockUntilString) {
+          const lockUntilDate = new Date(lockUntilString);
+          const now = new Date();
+          
+          if (now < lockUntilDate) {
+            // Приложение все еще заблокировано
+            setIsAppLocked(true);
+            setLockUntil(lockUntilDate);
+            setTimeLeft(calculateTimeLeft());
+          } else {
+            // Блокировка истекла
+            await handleLockExpired();
+          }
+        }
+      } catch (error) {
+        console.error('Error checking lock status:', error);
+      }
+    };
+
+    checkLockStatus();
+  }, []);
+
+  // Загрузка данных при запуске (только если нет блокировки)
   useEffect(() => {
     const loadSavedData = async () => {
+      if (isAppLocked) return; // Не загружаем данные если приложение заблокировано
+      
       try {
         const savedData = await AsyncStorage.getItem(STORAGE_KEY);
         if (savedData) {
@@ -141,11 +247,13 @@ export default function Index() {
     };
 
     loadSavedData();
-  }, []);
+  }, [isAppLocked]);
 
-  // Сохранение данных при изменении
+  // Сохранение данных при изменении (только если нет блокировки)
   useEffect(() => {
     const saveData = async () => {
+      if (isAppLocked) return; // Не сохраняем данные если приложение заблокировано
+      
       try {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentSetup));
         console.log('💾 Данные сохранены');
@@ -155,7 +263,7 @@ export default function Index() {
     };
 
     saveData();
-  }, [currentSetup]);
+  }, [currentSetup, isAppLocked]);
 
   useEffect(() => {
     scrollToTop();
@@ -200,8 +308,8 @@ export default function Index() {
 
       const formatTimeZone = (zone: string | null) => {
         switch (zone) {
-          case 'LOKZ': return 'London Kill Zone (LOKZ)';
-          case 'NYOKZ': return 'New York Kill Zone (NYOKZ)';
+          case 'LOKZ': return 'London Open Kill Zone (LOKZ)';
+          case 'NYOKZ': return 'New York Open Kill Zone (NYOKZ)';
           case 'LCKZ': return 'London Close Kill Zone (LCKZ)';
           case 'NO_MANS_LAND': return 'No Man\'s Land';
           default: return 'NOT SET';
@@ -246,6 +354,7 @@ export default function Index() {
           <div class="row"><span class="label">Price Condition:</span> <span class="value">${currentSetup.stage.priceCondition === 'pd_array' ? 'Price at/coming from 4H+ PD Array' : currentSetup.stage.priceCondition === 'stops_run' ? 'Stops run on PWH/PWL/PDH/PDL' : 'NOT SET'}</span></div>
           <div class="row"><span class="label">15m+ Displacement/CISOD:</span> <span class="value">${currentSetup.stage.displacement ? 'OCCURRED ✓' : 'NOT OCCURRED ✗'}</span></div>
           <div class="row"><span class="label">Displacement Type:</span> <span class="value">${currentSetup.stage.displacementType === 'mss' ? 'Market Structure Shift (MSS)' : currentSetup.stage.displacementType === 'fvg_cut' ? 'Cuts through opposing FVG(PDA)' : 'NOT SET'}</span></div>
+          <div class="row"><span class="label">NO IOFED on 1H+:</span> <span class="value">CONFIRMED ✓</span></div>
           ${currentSetup.stage.screenshot ? `<img src="${currentSetup.stage.screenshot}" />` : ''}
         </div>
 
@@ -302,6 +411,15 @@ export default function Index() {
   };
 
   const handleGenerateReport = async () => {
+    if (isAppLocked) {
+      Alert.alert(
+        'App Locked',
+        'The app is locked until tomorrow due to uncertain market direction.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (!currentSetup.direction.completed || !currentSetup.stage.completed || !currentSetup.entry.completed) {
       Alert.alert(
         'Not All Sections Completed',
@@ -317,41 +435,11 @@ export default function Index() {
   const clearAllData = async () => {
     try {
       console.log('🧹 Clearing all data...');
-      await AsyncStorage.removeItem(STORAGE_KEY);
-      const freshSetup: TradingSetup = {
-        id: '',
-        name: `Setup ${new Date().toLocaleDateString()}`,
-        direction: {
-          weeklyBias: null,
-          dailyBias: null,
-          pdasIdentified: false,
-          screenshot: null,
-          completed: false,
-        },
-        stage: {
-          priceCondition: null,
-          displacement: false,
-          displacementType: null,
-          screenshot: null,
-          completed: false,
-        },
-        entry: {
-          highGradeSwingPoint: false,
-          swingPointType: null,
-          oteLevel: false,
-          oteRetracement: null,
-          stopLossLevel: null,
-          takeProfitLevel: null,
-          riskReward: null,
-          timeZoneSelected: false,
-          timeZone: null,
-          screenshot: null,
-          completed: false,
-        },
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      await AsyncStorage.multiRemove([STORAGE_KEY, LOCK_STORAGE_KEY]);
+      const freshSetup = createFreshSetup();
       setCurrentSetup(freshSetup);
+      setIsAppLocked(false);
+      setLockUntil(null);
       setActiveTab('direction');
       console.log('✅ All data cleared, starting fresh');
     } catch (error) {
@@ -361,10 +449,25 @@ export default function Index() {
   };
 
   const handleClearData = () => {
+    if (isAppLocked) {
+      Alert.alert(
+        'App Locked',
+        'The app is locked until tomorrow due to uncertain market direction.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     clearAllData();
   };
 
-  const updateDirection = (field: keyof DirectionState, value: any) => {
+  const updateDirection = async (field: keyof DirectionState, value: any) => {
+    if (isAppLocked) return;
+    
+    // Если меняется dailyBias, проверяем блокировку
+    if (field === 'dailyBias') {
+      await checkAndSetLock(value);
+    }
+
     const newSetup = {
       ...currentSetup,
       direction: {
@@ -382,6 +485,8 @@ export default function Index() {
   };
 
   const updateStage = (field: keyof StageState, value: any) => {
+    if (isAppLocked) return;
+    
     const newSetup = {
       ...currentSetup,
       stage: {
@@ -399,6 +504,8 @@ export default function Index() {
   };
 
   const updateEntry = (field: keyof EntryState, value: any) => {
+    if (isAppLocked) return;
+    
     const newSetup = {
       ...currentSetup,
       entry: {
@@ -418,6 +525,7 @@ export default function Index() {
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
            direction.dailyBias !== null &&
+           direction.dailyBias !== 'not_sure' && // исключаем not_sure
            direction.pdasIdentified &&
            direction.screenshot !== null;
   };
@@ -426,6 +534,7 @@ export default function Index() {
     return stage.priceCondition !== null && 
            stage.displacement && 
            stage.displacementType !== null &&
+           stage.noIofed &&
            stage.screenshot !== null;
   };
 
@@ -442,6 +551,8 @@ export default function Index() {
   };
 
   const isTabAccessible = (tab: TabType): boolean => {
+    if (isAppLocked) return false;
+    
     switch (tab) {
       case 'direction':
         return true;
@@ -455,6 +566,15 @@ export default function Index() {
   };
 
   const switchTab = (tab: TabType) => {
+    if (isAppLocked) {
+      Alert.alert(
+        'App Locked',
+        'The app is locked until tomorrow due to uncertain market direction.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (!isTabAccessible(tab)) {
       const requiredSections = [];
       if (tab === 'stage' && !currentSetup.direction.completed) {
@@ -477,6 +597,15 @@ export default function Index() {
   };
 
   const pickImage = async (section: 'direction' | 'stage' | 'entry') => {
+    if (isAppLocked) {
+      Alert.alert(
+        'App Locked',
+        'The app is locked until tomorrow due to uncertain market direction.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     try {
       const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
       
@@ -518,6 +647,15 @@ export default function Index() {
   };
 
   const removeImage = (section: 'direction' | 'stage' | 'entry') => {
+    if (isAppLocked) {
+      Alert.alert(
+        'App Locked',
+        'The app is locked until tomorrow due to uncertain market direction.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     if (section === 'direction') {
       updateDirection('screenshot', null);
     } else if (section === 'stage') {
@@ -530,54 +668,14 @@ export default function Index() {
   const handleDoubleTap = () => {
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
-      if (zoomScale === 1) {
-        setZoomScale(2);
-        setTimeout(() => {
-          if (zoomScrollRef.current) {
-            zoomScrollRef.current.scrollTo({
-              x: (width * 2 - width) / 2,
-              y: (height * 2 - height) / 2,
-              animated: true
-            });
-          }
-        }, 100);
-      } else {
-        setZoomScale(1);
-        if (zoomScrollRef.current) {
-          zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
-        }
-      }
+      setImageScale(prev => prev === 1 ? 2 : 1);
     }
     lastTapRef.current = now;
   };
 
-  const handleZoomScroll = (event: any) => {
-    const { contentSize, contentOffset, layoutMeasurement } = event.nativeEvent;
-    const scale = Math.max(
-      contentSize.width / layoutMeasurement.width,
-      contentSize.height / layoutMeasurement.height
-    );
-    setZoomScale(scale);
-  };
-
   const resetZoom = () => {
-    setZoomScale(1);
+    setImageScale(1);
     if (zoomScrollRef.current) {
-      zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
-    }
-  };
-
-  const zoomTo = (scale: number) => {
-    setZoomScale(scale);
-    if (scale > 1 && zoomScrollRef.current) {
-      setTimeout(() => {
-        zoomScrollRef.current?.scrollTo({
-          x: (width * scale - width) / 2,
-          y: (height * scale - height) / 2,
-          animated: true
-        });
-      }, 100);
-    } else if (scale === 1 && zoomScrollRef.current) {
       zoomScrollRef.current.scrollTo({ x: 0, y: 0, animated: true });
     }
   };
@@ -610,10 +708,7 @@ export default function Index() {
               style={styles.uploadedImage}
               resizeMode="contain"
             />
-            <View style={styles.zoomHint}>
-              <Ionicons name="expand" size={20} color="#fff" />
-              <Text style={styles.zoomHintText}>Tap to zoom</Text>
-            </View>
+            
           </TouchableOpacity>
           <View style={styles.imageActions}>
             <TouchableOpacity
@@ -658,16 +753,17 @@ export default function Index() {
         style={[
           styles.tabButton, 
           isActive && styles.activeTab,
-          !isAccessible && styles.lockedTab
+          (!isAccessible || isAppLocked) && styles.lockedTab
         ]}
         onPress={() => switchTab(tab)}
-        disabled={!isAccessible && !isActive}
+        disabled={(!isAccessible && !isActive) || isAppLocked}
       >
         <View style={styles.tabContent}>
           <Ionicons 
-            name={!isAccessible && !isActive ? 'lock-closed' : icon as any} 
+            name={(!isAccessible && !isActive) || isAppLocked ? 'lock-closed' : icon as any} 
             size={20} 
             color={
+              isAppLocked ? '#444' :
               !isAccessible && !isActive ? '#444' :
               isActive ? '#00D4FF' : 
               isCompleted ? '#4CAF50' : '#666'
@@ -677,14 +773,14 @@ export default function Index() {
             styles.tabText, 
             isActive && styles.activeTabText,
             isCompleted && styles.completedTabText,
-            !isAccessible && !isActive && styles.lockedTabText
+            ((!isAccessible && !isActive) || isAppLocked) && styles.lockedTabText
           ]}>
             {label}
           </Text>
-          {isCompleted && (
+          {isCompleted && !isAppLocked && (
             <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={styles.checkIcon} />
           )}
-          {!isAccessible && !isActive && (
+          {((!isAccessible && !isActive) || isAppLocked) && (
             <Ionicons name="lock-closed" size={12} color="#444" style={styles.lockIcon} />
           )}
         </View>
@@ -742,9 +838,37 @@ export default function Index() {
     </TouchableOpacity>
   );
 
+  const LockScreen = ({ lockUntil, timeLeft }: { lockUntil: Date; timeLeft: string }) => (
+    <View style={styles.lockScreen}>
+      <Ionicons name="lock-closed" size={80} color="#FF9800" />
+      <Text style={styles.lockTitle}>Trading Day Skipped</Text>
+      
+      <View style={styles.lockMessageBox}>
+        <Text style={styles.lockMessageText}>
+          Without a clear daily direction, the trading system cannot work effectively. Consider this a risk management decision. Take a break today.
+        </Text>
+      </View>
+
+      <View style={styles.timerContainer}>
+        <Text style={styles.timerLabel}>App unlocks in:</Text>
+        <Text style={styles.timer}>{timeLeft}</Text>
+        <Text style={styles.timerSubtext}>
+          {lockUntil.toLocaleDateString()} at 00:00
+        </Text>
+      </View>
+
+      <Text style={styles.lockSubtext}>
+        The app will automatically reset tomorrow with a fresh setup
+      </Text>
+    </View>
+  );
+
   const renderDirectionSection = () => {
     const checkAlignment = () => {
       if (!currentSetup.direction.weeklyBias || !currentSetup.direction.dailyBias) return null;
+      
+      // Если dailyBias = not_sure, считаем это конфликтом
+      if (currentSetup.direction.dailyBias === 'not_sure') return false;
       
       const aligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
                      (currentSetup.direction.weeklyBias === 'bearish' && currentSetup.direction.dailyBias === 'lower');
@@ -800,26 +924,45 @@ export default function Index() {
           <Text style={styles.checklistSubtitle}>Is today's daily candle likely to trade higher or lower?</Text>
           
           <View style={styles.optionRow}>
-            {(['higher', 'lower'] as const).map((direction) => (
+            {(['higher', 'lower', 'not_sure'] as const).map((direction) => (
               <TouchableOpacity
                 key={direction}
                 style={[
                   styles.optionButton,
                   currentSetup.direction.dailyBias === direction && styles.selectedOption,
                   direction === 'higher' && currentSetup.direction.dailyBias === direction && styles.bullishOption,
-                  direction === 'lower' && currentSetup.direction.dailyBias === direction && styles.bearishOption
+                  direction === 'lower' && currentSetup.direction.dailyBias === direction && styles.bearishOption,
+                  direction === 'not_sure' && currentSetup.direction.dailyBias === direction && styles.notSureOption
                 ]}
                 onPress={() => updateDirection('dailyBias', direction)}
               >
                 <Text style={[styles.optionText, currentSetup.direction.dailyBias === direction && styles.selectedOptionText]}>
-                  {direction.toUpperCase()}
+                  {direction === 'not_sure' ? 'NOT SURE' : direction.toUpperCase()}
                 </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {currentSetup.direction.weeklyBias && currentSetup.direction.dailyBias && (
+        {currentSetup.direction.dailyBias === 'not_sure' && (
+          <View style={styles.skipTradingWarning}>
+            <Ionicons name="warning" size={24} color="#FF9800" />
+            <View style={styles.skipTradingContent}>
+              <Text style={styles.skipTradingTitle}>Skip Trading Today</Text>
+              <Text style={styles.skipTradingText}>
+                Without a clear daily direction, the trading system cannot work effectively. 
+                The app will be locked until tomorrow as a risk management measure.
+              </Text>
+              {lockUntil && (
+                <Text style={styles.lockTimeText}>
+                  App locked until: {lockUntil.toLocaleDateString()} {lockUntil.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                </Text>
+              )}
+            </View>
+          </View>
+        )}
+
+        {currentSetup.direction.weeklyBias && currentSetup.direction.dailyBias && currentSetup.direction.dailyBias !== 'not_sure' && (
           <View style={[
             styles.alignmentWarning,
             isAligned === false ? styles.conflictWarning : styles.alignedWarning
@@ -849,7 +992,7 @@ export default function Index() {
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>STAGE</Text>
-        <Text style={styles.sectionSubtitle}>For the Stage I need to see these two things</Text>
+        <Text style={styles.sectionSubtitle}>For the Stage I need to see these three things</Text>
       </View>
 
       <View style={styles.checklistSection}>
@@ -900,6 +1043,26 @@ export default function Index() {
         )}
       </View>
 
+      <View style={styles.checklistSection}>
+        <Text style={styles.checklistTitle}>3. NO IOFED Confirmation</Text>
+        <Text style={styles.checklistSubtitle}>Ensure there is no IOFED (Institutionally Originated False Break & Demand) on 1H+ timeframe:</Text>
+        
+        <CheckboxItem
+          label="NO IOFED on 1H+ confirmed"
+          checked={currentSetup.stage.noIofed}
+          onPress={(value) => updateStage('noIofed', value)}
+        />
+
+        {!currentSetup.stage.noIofed && (
+          <View style={styles.iofedWarning}>
+            <Ionicons name="warning" size={16} color="#FF9800" />
+            <Text style={styles.iofedWarningText}>
+              IOFED presence can invalidate the setup - Review carefully
+            </Text>
+          </View>
+        )}
+      </View>
+
       {currentSetup.stage.completed && (
         <View style={styles.completionSection}>
           <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
@@ -937,13 +1100,13 @@ export default function Index() {
               <Text style={styles.optionLabel}>Select Kill Zone:</Text>
               <View style={styles.optionColumn}>
                 <OptionItem
-                  label="London Kill Zone (LOKZ) 2am-5am"
+                  label="London Open Kill Zone (LOKZ) 2am-5am"
                   selected={currentSetup.entry.timeZone === 'LOKZ'}
                   onPress={() => updateEntry('timeZone', 'LOKZ')}
                 />
 
                 <OptionItem
-                  label="New York Kill Zone (NYOKZ) 7am-10am"
+                  label="New York Open Kill Zone (NYOKZ) 7am-10am"
                   selected={currentSetup.entry.timeZone === 'NYOKZ'}
                   onPress={() => updateEntry('timeZone', 'NYOKZ')}
                 />
@@ -961,9 +1124,7 @@ export default function Index() {
                   isWarning={true}
                 />
               </View>
-              {currentSetup.entry.timeZone === 'NO_MANS_LAND' && (
-                <Text style={styles.warningSubtext}>High risk period</Text>
-              )}
+              
             </View>
           )}
         </View>
@@ -1117,6 +1278,16 @@ export default function Index() {
     }
   };
 
+  // Если приложение заблокировано, показываем LockScreen
+  if (isAppLocked && lockUntil) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
+        <LockScreen lockUntil={lockUntil} timeLeft={timeLeft} />
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#0a0a0a" />
@@ -1159,7 +1330,7 @@ export default function Index() {
         </ScrollView>
       </View>
 
-      {/* Modal для увеличенного просмотра скриншотов с улучшенным зумом */}
+      {/* Modal для увеличенного просмотра скриншотов с настоящим зумом */}
       <Modal
         visible={!!zoomedImage}
         transparent={true}
@@ -1180,23 +1351,24 @@ export default function Index() {
               minimumZoomScale={1}
               showsHorizontalScrollIndicator={true}
               showsVerticalScrollIndicator={true}
-              onScroll={handleZoomScroll}
-              scrollEventThrottle={16}
               contentContainerStyle={styles.zoomScrollContent}
             >
               <TouchableOpacity 
                 style={styles.zoomImageTouchable}
                 activeOpacity={1}
-                onPress={handleDoubleTap}
+                onPress={() => {
+                  const now = Date.now();
+                  if (now - lastTapRef.current < 300) {
+                    handleDoubleTap();
+                  }
+                  lastTapRef.current = now;
+                }}
               >
                 <Image 
                   source={{ uri: zoomedImage! }} 
                   style={[
                     styles.zoomedImage,
-                    { 
-                      width: width * zoomScale, 
-                      height: height * zoomScale 
-                    }
+                    { transform: [{ scale: imageScale }] }
                   ]}
                   resizeMode="contain"
                 />
@@ -1210,33 +1382,9 @@ export default function Index() {
               <Ionicons name="close" size={24} color="#fff" />
             </TouchableOpacity>
             
-            <TouchableOpacity 
-              style={styles.zoomButton}
-              onPress={() => zoomTo(zoomScale === 1 ? 2 : 1)}
-            >
-              <Ionicons name={zoomScale > 1 ? "search-outline" : "search"} size={20} color="#fff" />
-              <Text style={styles.zoomButtonText}>
-                {zoomScale > 1 ? 'Zoom Out' : 'Zoom 2x'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.resetZoomButton}
-              onPress={resetZoom}
-            >
-              <Ionicons name="refresh" size={16} color="#fff" />
-              <Text style={styles.resetZoomText}>Reset</Text>
-            </TouchableOpacity>
-            
             <View style={styles.zoomControls}>
               <Text style={styles.zoomHintText}>
-                {zoomScale > 1 
-                  ? 'Double tap to zoom out • Pinch to zoom • Drag to move' 
-                  : 'Double tap to zoom 2x • Pinch to zoom'
-                }
-              </Text>
-              <Text style={styles.zoomScaleText}>
-                Zoom: {zoomScale.toFixed(1)}x
+                {imageScale > 1 ? 'Double tap to zoom out' : 'Double tap to zoom 2x'}
               </Text>
             </View>
           </View>
@@ -1499,6 +1647,9 @@ const styles = StyleSheet.create({
   bearishOption: {
     backgroundColor: '#f44336',
   },
+  notSureOption: {
+    backgroundColor: '#FF9800',
+  },
   alignmentWarning: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1607,6 +1758,7 @@ const styles = StyleSheet.create({
   lockedTabText: {
     color: '#444',
   },
+  // Стили для улучшенного отображения скриншотов
   imageUploadSection: {
     marginVertical: 20,
     padding: 16,
@@ -1717,6 +1869,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
+  // Стили для модального окна с увеличенным изображением и двойным тапом
   zoomOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
@@ -1739,15 +1892,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   zoomScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   zoomImageTouchable: {
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   zoomedImage: {
-    // Размеры вычисляются динамически
+    width: Dimensions.get('window').width - 40,
+    height: Dimensions.get('window').height - 40,
   },
   closeZoomButton: {
     position: 'absolute',
@@ -1758,27 +1914,9 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 10,
   },
-  zoomButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  zoomButtonText: {
-    color: '#fff',
-    marginLeft: 8,
-    fontSize: 14,
-    fontWeight: '600',
-  },
   resetZoomButton: {
     position: 'absolute',
-    top: 100,
+    top: 50,
     left: 20,
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     borderRadius: 20,
@@ -1800,19 +1938,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    paddingVertical: 10,
-  },
-  zoomHintText: {
-    color: '#fff',
-    fontSize: 14,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  zoomScaleText: {
-    color: '#00D4FF',
-    fontSize: 12,
-    fontWeight: '600',
   },
   noMansLandWarning: {
     flexDirection: 'row',
@@ -1852,5 +1977,115 @@ const styles = StyleSheet.create({
   },
   warningIcon: {
     marginLeft: 8,
+  },
+  // Стили для блокировки приложения
+  lockScreen: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+    backgroundColor: '#0a0a0a',
+  },
+  lockTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginTop: 20,
+    marginBottom: 30,
+    textAlign: 'center',
+  },
+  lockMessageBox: {
+    backgroundColor: '#2a1f1a',
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#FF9800',
+    marginBottom: 40,
+  },
+  lockMessageText: {
+    fontSize: 16,
+    color: '#FF9800',
+    textAlign: 'center',
+    lineHeight: 22,
+    fontWeight: '600',
+  },
+  timerContainer: {
+    alignItems: 'center',
+    marginBottom: 30,
+  },
+  timerLabel: {
+    fontSize: 18,
+    color: '#ccc',
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  timer: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: '#00D4FF',
+    marginBottom: 8,
+  },
+  timerSubtext: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+  },
+  lockSubtext: {
+    fontSize: 14,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 16,
+    fontStyle: 'italic',
+  },
+  // IOFED warning styles
+  iofedWarning: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2a1f1a',
+    padding: 12,
+    borderRadius: 6,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#FF9800',
+  },
+  iofedWarningText: {
+    color: '#FF9800',
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '600',
+    flex: 1,
+  },
+  // Skip trading warning
+  skipTradingWarning: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#2a1f1a',
+    padding: 16,
+    borderRadius: 8,
+    marginVertical: 16,
+    borderWidth: 2,
+    borderColor: '#FF9800',
+  },
+  skipTradingContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  skipTradingTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FF9800',
+    marginBottom: 8,
+  },
+  skipTradingText: {
+    fontSize: 14,
+    color: '#FF9800',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  lockTimeText: {
+    fontSize: 12,
+    color: '#FF9800',
+    opacity: 0.8,
+    fontStyle: 'italic',
   },
 });
