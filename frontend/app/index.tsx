@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   StatusBar,
   Alert,
   Image,
-  Dimensions,
   Modal,
+  Dimensions,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -59,7 +60,7 @@ interface EntryState {
   completed: boolean;
 }
 
-type TabType = 'direction' | 'stage' | 'entry';
+type TabType = 'direction' | 'stage' | 'entry' | 'calculator';
 
 const { width, height } = Dimensions.get('window');
 
@@ -102,6 +103,13 @@ const createFreshSetup = (): TradingSetup => ({
   updatedAt: new Date().toISOString()
 });
 
+// Добавляем интерфейс для калькулятора
+interface PositionCalculator {
+  deposit: string;
+  riskPercent: string;
+  stopLossPips: string;
+}
+
 export default function Index() {
   const [activeTab, setActiveTab] = useState<TabType>('direction');
   const [currentSetup, setCurrentSetup] = useState<TradingSetup>(createFreshSetup());
@@ -120,6 +128,11 @@ export default function Index() {
   const [isAppLocked, setIsAppLocked] = useState(false);
   const [lockUntil, setLockUntil] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
+  const [calculator, setCalculator] = useState<PositionCalculator>({
+    deposit: '100000',
+    riskPercent: '0.5',
+    stopLossPips: '',
+  });
 
   const mainScrollRef = useRef<ScrollView>(null);
   const zoomScrollRef = useRef<ScrollView>(null);
@@ -152,7 +165,6 @@ export default function Index() {
   // Функция для проверки и установки блокировки
   const checkAndSetLock = async (dailyBias: 'higher' | 'lower' | 'not_sure' | null) => {
     if (dailyBias === 'not_sure') {
-      // Блокируем до следующего дня (00:00 следующего дня)
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
       tomorrow.setHours(0, 0, 0, 0);
@@ -161,10 +173,7 @@ export default function Index() {
       setLockUntil(tomorrow);
       setTimeLeft(calculateTimeLeft());
       
-      // Сохраняем в AsyncStorage
       await AsyncStorage.setItem(LOCK_STORAGE_KEY, tomorrow.toISOString());
-      
-      // НЕТ АЛЕРТА - сразу показываем экран блокировки
     } else {
       setIsAppLocked(false);
       setLockUntil(null);
@@ -179,7 +188,6 @@ export default function Index() {
         const newTimeLeft = calculateTimeLeft();
         setTimeLeft(newTimeLeft);
         
-        // Если время вышло, разблокируем приложение
         if (newTimeLeft === '00:00:00') {
           clearInterval(timer);
           handleLockExpired();
@@ -210,12 +218,10 @@ export default function Index() {
           const now = new Date();
           
           if (now < lockUntilDate) {
-            // Приложение все еще заблокировано
             setIsAppLocked(true);
             setLockUntil(lockUntilDate);
             setTimeLeft(calculateTimeLeft());
           } else {
-            // Блокировка истекла
             await handleLockExpired();
           }
         }
@@ -230,7 +236,7 @@ export default function Index() {
   // Загрузка данных при запуске (только если нет блокировки)
   useEffect(() => {
     const loadSavedData = async () => {
-      if (isAppLocked) return; // Не загружаем данные если приложение заблокировано
+      if (isAppLocked) return;
       
       try {
         const savedData = await AsyncStorage.getItem(STORAGE_KEY);
@@ -252,7 +258,7 @@ export default function Index() {
   // Сохранение данных при изменении (только если нет блокировки)
   useEffect(() => {
     const saveData = async () => {
-      if (isAppLocked) return; // Не сохраняем данные если приложение заблокировано
+      if (isAppLocked) return;
       
       try {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(currentSetup));
@@ -463,7 +469,6 @@ export default function Index() {
   const updateDirection = async (field: keyof DirectionState, value: any) => {
     if (isAppLocked) return;
     
-    // Если меняется dailyBias, проверяем блокировку
     if (field === 'dailyBias') {
       await checkAndSetLock(value);
     }
@@ -525,7 +530,7 @@ export default function Index() {
   const checkDirectionCompleted = (direction: DirectionState): boolean => {
     return direction.weeklyBias !== null && 
            direction.dailyBias !== null &&
-           direction.dailyBias !== 'not_sure' && // исключаем not_sure
+           direction.dailyBias !== 'not_sure' &&
            direction.pdasIdentified &&
            direction.screenshot !== null;
   };
@@ -560,13 +565,15 @@ export default function Index() {
         return currentSetup.direction.completed;
       case 'entry':
         return currentSetup.direction.completed && currentSetup.stage.completed;
+      case 'calculator':
+        return true; // Калькулятор всегда доступен
       default:
         return false;
     }
   };
 
   const switchTab = (tab: TabType) => {
-    if (isAppLocked) {
+    if (isAppLocked && tab !== 'calculator') {
       Alert.alert(
         'App Locked',
         'The app is locked until tomorrow due to uncertain market direction.',
@@ -685,6 +692,42 @@ export default function Index() {
     setZoomedImage(null);
   };
 
+  // Оптимизированные функции для калькулятора
+  const calculateLotSize = useCallback((deposit: string, riskPercent: string, stopLossPips: string): string => {
+    const depositNum = parseFloat(deposit);
+    const riskPercentNum = parseFloat(riskPercent);
+    const stopLossPipsNum = parseFloat(stopLossPips);
+
+    if (isNaN(depositNum) || isNaN(riskPercentNum) || isNaN(stopLossPipsNum) || stopLossPipsNum <= 0) {
+      return '0.00';
+    }
+
+    const riskMoney = depositNum * (riskPercentNum / 100);
+    const lotSize = riskMoney / (stopLossPipsNum * 10);
+    
+    return Math.max(0, lotSize).toFixed(2);
+  }, []);
+
+  // Мемоизированный расчет лота
+  const calculatedLotSize = useMemo(() => {
+    return calculateLotSize(calculator.deposit, calculator.riskPercent, calculator.stopLossPips);
+  }, [calculator.deposit, calculator.riskPercent, calculator.stopLossPips, calculateLotSize]);
+
+  const updateCalculatorField = useCallback((field: keyof PositionCalculator, value: string) => {
+    setCalculator(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  }, []);
+
+  const clearCalculator = useCallback(() => {
+    setCalculator({
+      deposit: '100000',
+      riskPercent: '0.5',
+      stopLossPips: '',
+    });
+  }, []);
+
   const ImageUploadSection = ({ section, screenshot }: { section: 'direction' | 'stage' | 'entry'; screenshot: string | null }) => (
     <View style={styles.imageUploadSection}>
       <Text style={styles.imageUploadTitle}>📸 Chart Screenshot</Text>
@@ -708,7 +751,6 @@ export default function Index() {
               style={styles.uploadedImage}
               resizeMode="contain"
             />
-            
           </TouchableOpacity>
           <View style={styles.imageActions}>
             <TouchableOpacity
@@ -744,7 +786,8 @@ export default function Index() {
     const isActive = activeTab === tab;
     const isCompleted = tab === 'direction' ? currentSetup.direction.completed :
                       tab === 'stage' ? currentSetup.stage.completed :
-                      currentSetup.entry.completed;
+                      tab === 'entry' ? currentSetup.entry.completed :
+                      false;
     const isAccessible = isTabAccessible(tab);
 
     return (
@@ -753,18 +796,18 @@ export default function Index() {
         style={[
           styles.tabButton, 
           isActive && styles.activeTab,
-          (!isAccessible || isAppLocked) && styles.lockedTab
+          (!isAccessible && tab !== 'calculator') && styles.lockedTab
         ]}
         onPress={() => switchTab(tab)}
-        disabled={(!isAccessible && !isActive) || isAppLocked}
+        disabled={(!isAccessible && tab !== 'calculator')}
       >
         <View style={styles.tabContent}>
           <Ionicons 
-            name={(!isAccessible && !isActive) || isAppLocked ? 'lock-closed' : icon as any} 
+            name={(!isAccessible && tab !== 'calculator') ? 'lock-closed' : icon as any} 
             size={20} 
             color={
-              isAppLocked ? '#444' :
-              !isAccessible && !isActive ? '#444' :
+              isAppLocked && tab !== 'calculator' ? '#444' :
+              !isAccessible && tab !== 'calculator' ? '#444' :
               isActive ? '#00D4FF' : 
               isCompleted ? '#4CAF50' : '#666'
             } 
@@ -773,14 +816,14 @@ export default function Index() {
             styles.tabText, 
             isActive && styles.activeTabText,
             isCompleted && styles.completedTabText,
-            ((!isAccessible && !isActive) || isAppLocked) && styles.lockedTabText
+            ((!isAccessible && tab !== 'calculator') || (isAppLocked && tab !== 'calculator')) && styles.lockedTabText
           ]}>
             {label}
           </Text>
           {isCompleted && !isAppLocked && (
             <Ionicons name="checkmark-circle" size={16} color="#4CAF50" style={styles.checkIcon} />
           )}
-          {((!isAccessible && !isActive) || isAppLocked) && (
+          {((!isAccessible && tab !== 'calculator') || (isAppLocked && tab !== 'calculator')) && (
             <Ionicons name="lock-closed" size={12} color="#444" style={styles.lockIcon} />
           )}
         </View>
@@ -863,11 +906,94 @@ export default function Index() {
     </View>
   );
 
+  const renderCalculatorSection = () => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.calculatorContent}>
+        {/* Account Balance */}
+        <View style={styles.calculatorSection}>
+          <Text style={styles.calculatorLabel}>Account Balance ($)</Text>
+          <TextInput
+            style={styles.calculatorInput}
+            value={calculator.deposit}
+            onChangeText={(value) => updateCalculatorField('deposit', value)}
+            keyboardType="decimal-pad"
+            placeholder="Enter account balance"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        {/* Risk Percentage */}
+        <View style={styles.calculatorSection}>
+          <Text style={styles.calculatorLabel}>Risk Percentage (%)</Text>
+          <View style={styles.riskButtonsContainer}>
+            {['0.25', '0.5', '1.0', '1.5'].map((percent) => (
+              <TouchableOpacity
+                key={percent}
+                style={[
+                  styles.riskButton,
+                  calculator.riskPercent === percent && styles.riskButtonSelected
+                ]}
+                onPress={() => updateCalculatorField('riskPercent', percent)}
+              >
+                <Text style={[
+                  styles.riskButtonText,
+                  calculator.riskPercent === percent && styles.riskButtonTextSelected
+                ]}>
+                  {percent}%
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <TextInput
+            style={styles.calculatorInput}
+            value={calculator.riskPercent}
+            onChangeText={(value) => updateCalculatorField('riskPercent', value)}
+            keyboardType="decimal-pad"
+            placeholder="Or enter custom risk %"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        {/* Stop Loss */}
+        <View style={styles.calculatorSection}>
+          <Text style={styles.calculatorLabel}>Stop Loss (Pips)</Text>
+          <TextInput
+            style={styles.calculatorInput}
+            value={calculator.stopLossPips}
+            onChangeText={(value) => updateCalculatorField('stopLossPips', value)}
+            keyboardType="decimal-pad"
+            placeholder="Enter stop loss in pips"
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        {/* Results */}
+        <View style={styles.calculatorResultSection}>
+          <Text style={styles.calculatorLabel}>Recommended Lot Size</Text>
+          <View style={styles.lotSizeDisplay}>
+            <Text style={styles.lotSizeText}>{calculatedLotSize}</Text>
+            <Text style={styles.lotSizeLabel}>LOTS</Text>
+          </View>
+        </View>
+
+        {/* Action Buttons */}
+        <View style={styles.calculatorActions}>
+          <TouchableOpacity 
+            style={[styles.calculatorButton, styles.calculatorClearButton]}
+            onPress={clearCalculator}
+          >
+            <Ionicons name="refresh" size={20} color="#FF6B6B" />
+            <Text style={styles.calculatorClearButtonText}>Clear All</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
   const renderDirectionSection = () => {
     const checkAlignment = () => {
       if (!currentSetup.direction.weeklyBias || !currentSetup.direction.dailyBias) return null;
       
-      // Если dailyBias = not_sure, считаем это конфликтом
       if (currentSetup.direction.dailyBias === 'not_sure') return false;
       
       const aligned = (currentSetup.direction.weeklyBias === 'bullish' && currentSetup.direction.dailyBias === 'higher') ||
@@ -1124,7 +1250,6 @@ export default function Index() {
                   isWarning={true}
                 />
               </View>
-              
             </View>
           )}
         </View>
@@ -1273,6 +1398,8 @@ export default function Index() {
         return renderStageSection();
       case 'entry':
         return renderEntrySection();
+      case 'calculator':
+        return renderCalculatorSection();
       default:
         return renderDirectionSection();
     }
@@ -1303,6 +1430,7 @@ export default function Index() {
             <Ionicons name="document-text-outline" size={16} color="#00D4FF" />
             <Text style={styles.saveButtonText}>Generate Report</Text>
           </TouchableOpacity>
+          
           <TouchableOpacity 
             style={styles.clearButton} 
             onPress={handleClearData}
@@ -1317,6 +1445,7 @@ export default function Index() {
         {renderTabButton('direction', 'compass-outline', 'Direction')}
         {renderTabButton('stage', 'layers-outline', 'Stage')}
         {renderTabButton('entry', 'enter-outline', 'Entry')}
+        {renderTabButton('calculator', 'calculator-outline', 'Calculator')}
       </View>
 
       <View style={styles.content}>
@@ -1330,7 +1459,7 @@ export default function Index() {
         </ScrollView>
       </View>
 
-      {/* Modal для увеличенного просмотра скриншотов с настоящим зумом */}
+      {/* Modal для увеличенного просмотра скриншотов */}
       <Modal
         visible={!!zoomedImage}
         transparent={true}
@@ -1418,8 +1547,9 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 8,
     alignItems: 'center',
+    flexWrap: 'wrap',
   },
   saveButton: {
     flexDirection: 'row',
@@ -1758,7 +1888,6 @@ const styles = StyleSheet.create({
   lockedTabText: {
     color: '#444',
   },
-  // Стили для улучшенного отображения скриншотов
   imageUploadSection: {
     marginVertical: 20,
     padding: 16,
@@ -1804,7 +1933,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#00D4FF',
     marginTop: 8,
-  },
+    },
   uploadButtonSubtext: {
     fontSize: 12,
     color: '#888',
@@ -1827,23 +1956,6 @@ const styles = StyleSheet.create({
   uploadedImage: {
     width: '100%',
     height: '100%',
-  },
-  zoomHint: {
-    position: 'absolute',
-    bottom: 12,
-    right: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    gap: 4,
-  },
-  zoomHintText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: '600',
   },
   imageActions: {
     flexDirection: 'row',
@@ -1869,7 +1981,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
   },
-  // Стили для модального окна с увеличенным изображением и двойным тапом
   zoomOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.95)',
@@ -1914,30 +2025,21 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 10,
   },
-  resetZoomButton: {
-    position: 'absolute',
-    top: 50,
-    left: 20,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    zIndex: 10,
-  },
-  resetZoomText: {
-    color: '#fff',
-    marginLeft: 6,
-    fontSize: 14,
-    fontWeight: '600',
-  },
   zoomControls: {
     position: 'absolute',
     bottom: 30,
     left: 0,
     right: 0,
     alignItems: 'center',
+  },
+  zoomHintText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
   },
   noMansLandWarning: {
     flexDirection: 'row',
@@ -1968,17 +2070,9 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     fontWeight: '600',
   },
-  warningSubtext: {
-    fontSize: 12,
-    color: '#FF9800',
-    marginTop: 8,
-    opacity: 0.8,
-    fontStyle: 'italic',
-  },
   warningIcon: {
     marginLeft: 8,
   },
-  // Стили для блокировки приложения
   lockScreen: {
     flex: 1,
     justifyContent: 'center',
@@ -2037,7 +2131,6 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontStyle: 'italic',
   },
-  // IOFED warning styles
   iofedWarning: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -2055,7 +2148,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     flex: 1,
   },
-  // Skip trading warning
   skipTradingWarning: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -2087,5 +2179,121 @@ const styles = StyleSheet.create({
     color: '#FF9800',
     opacity: 0.8,
     fontStyle: 'italic',
+  },
+  // Стили для калькулятора
+  calculatorContent: {
+    flex: 1,
+  },
+  calculatorSection: {
+    marginBottom: 20,
+  },
+  calculatorLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  calculatorInput: {
+    backgroundColor: '#121214',
+    borderWidth: 1,
+    borderColor: '#444',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    color: '#fff',
+    fontSize: 16,
+    height: 50,
+  },
+  riskButtonsContainer: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 8,
+  },
+  riskButton: {
+    flex: 1,
+    paddingVertical: 8,
+    backgroundColor: '#0a0a0a',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#333',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  riskButtonSelected: {
+    backgroundColor: '#00D4FF',
+    borderColor: '#00D4FF',
+  },
+  riskButtonText: {
+    color: '#888',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  riskButtonTextSelected: {
+    color: '#1a1a1a',
+    fontWeight: 'bold',
+  },
+  calculatorResultSection: {
+    backgroundColor: '#0a0a0a',
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 16,
+    borderWidth: 2,
+    borderColor: '#00D4FF',
+    alignItems: 'center',
+  },
+  lotSizeDisplay: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  lotSizeText: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#00D4FF',
+    marginBottom: 4,
+  },
+  lotSizeLabel: {
+    fontSize: 18,
+    color: '#888',
+    fontWeight: '600',
+  },
+  calculatorInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 212, 255, 0.1)',
+    padding: 16,
+    borderRadius: 8,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#00D4FF',
+  },
+  calculatorInfoText: {
+    fontSize: 14,
+    color: '#00D4FF',
+    marginLeft: 12,
+    flex: 1,
+    fontWeight: '500',
+  },
+  calculatorActions: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 20,
+  },
+  calculatorButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    gap: 8,
+  },
+  calculatorClearButton: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderWidth: 1,
+    borderColor: '#FF6B6B',
+  },
+  calculatorClearButtonText: {
+    color: '#FF6B6B',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
